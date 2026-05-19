@@ -1,0 +1,6 @@
+# Archivo exclusivo para Producción (VPS)
+# Este archivo expone el Frontend al mundo exterior en el puerto 80.
+services:
+  frontend:
+    ports:
+      - "80:80"

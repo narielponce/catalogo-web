@@ -1,0 +1,15 @@
+# Entornos Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+venv/
+env/
+
+# Node y Vue
+node_modules/
+dist/
+.DS_Store
+
+# Docker Local
+docker-compose.override.yml
