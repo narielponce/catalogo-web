@@ -21,8 +21,7 @@ const themes = [
 // Estado del Modal
 const mostrarModal = ref(false)
 const fileInput = ref(null)
-const imagenPrevia = ref(null)
-const fileToUpload = ref(null)
+const imagenesProducto = ref([]) // [{ id, url, blob, isExisting }]
 const imagenAmpliada = ref(null)
 const productoEnEdicion = ref(null)
 
@@ -42,6 +41,7 @@ const formPerfil = ref({
 const isUpdatingPerfil = ref(false)
 const mensajePerfil = ref('')
 const errorPerfil = ref('')
+const mostrarPerfilForm = ref(false)
 
 const fileInputLogo = ref(null)
 const logoPrevia = ref(null)
@@ -164,70 +164,102 @@ const handleLogout = () => {
   router.push({ name: 'login' })
 }
 
-const procesarImagen = (event) => {
-  const file = event.target.files[0]
-  if (!file) return
-
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const img = new Image()
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      let width = img.width
-      let height = img.height
-
-      if (width > 800) {
-        height = Math.round((height * 800) / width)
-        width = 800
-      }
-
-      canvas.width = width
-      canvas.height = height
-
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, width, height)
-
-      // Comprimir a WebP 80%
-      canvas.toBlob((blob) => {
-        fileToUpload.value = blob
-        imagenPrevia.value = URL.createObjectURL(blob)
-      }, 'image/webp', 0.8)
-    }
-    img.src = e.target.result
+const abrirNuevoProducto = () => {
+  productoEnEdicion.value = null
+  nuevoProducto.value = {
+    nombre: '',
+    precio: '',
+    descripcion: '',
+    disponible: true
   }
-  reader.readAsDataURL(file)
+  imagenesProducto.value = []
+  mostrarModal.value = true
+}
+
+const procesarImagen = (event) => {
+  const files = event.target.files
+  if (!files || files.length === 0) return
+
+  const espaciosDisponibles = 3 - imagenesProducto.value.length
+  const filesToProcess = Array.from(files).slice(0, espaciosDisponibles)
+
+  filesToProcess.forEach((file) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+
+        if (width > 800) {
+          height = Math.round((height * 800) / width)
+          width = 800
+        }
+
+        canvas.width = width
+        canvas.height = height
+
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, width, height)
+
+        canvas.toBlob((blob) => {
+          const tempUrl = URL.createObjectURL(blob)
+          imagenesProducto.value.push({
+            id: Date.now() + Math.random().toString(36).substr(2, 9),
+            url: tempUrl,
+            blob: blob,
+            isExisting: false
+          })
+        }, 'image/webp', 0.8)
+      }
+      img.src = e.target.result
+    }
+    reader.readAsDataURL(file)
+  })
+
+  if (fileInput.value) fileInput.value.value = ''
+}
+
+const eliminarImagen = (index) => {
+  const img = imagenesProducto.value[index]
+  if (!img.isExisting && img.url) {
+    URL.revokeObjectURL(img.url)
+  }
+  imagenesProducto.value.splice(index, 1)
 }
 
 const submitProducto = async () => {
   try {
-    let imagen_url = null
+    isLoading.value = true
+    const urlsFinales = []
     
-    // Si hay imagen, la subimos primero
-    if (fileToUpload.value) {
-      const formData = new FormData()
-      formData.append('file', fileToUpload.value, 'imagen.webp')
-      
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/productos/upload-image', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      })
-      
-      if (!response.ok) throw new Error("Error al subir imagen")
-      const dataImg = await response.json()
-      imagen_url = dataImg.url
+    for (let img of imagenesProducto.value) {
+      if (img.isExisting) {
+        urlsFinales.push(img.url)
+      } else if (img.blob) {
+        const formData = new FormData()
+        formData.append('file', img.blob, 'imagen.webp')
+        
+        const token = localStorage.getItem('token')
+        const response = await fetch('/api/productos/upload-image', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        })
+        
+        if (!response.ok) throw new Error("Error al subir una de las imágenes")
+        const dataImg = await response.json()
+        urlsFinales.push(dataImg.url)
+      }
     }
 
     const payload = {
       nombre: nuevoProducto.value.nombre,
       precio: parseFloat(nuevoProducto.value.precio),
       descripcion: nuevoProducto.value.descripcion,
-      disponible: nuevoProducto.value.disponible
-    }
-    
-    if (imagen_url) {
-      payload.imagen_url = imagen_url
+      disponible: nuevoProducto.value.disponible,
+      imagen_url: urlsFinales.join(',')
     }
 
     let data;
@@ -238,11 +270,13 @@ const submitProducto = async () => {
     }
     
     if (data) {
-      await cargarProductos() // Recargar la lista desde el servidor
+      await cargarProductos()
       cerrarModal()
     }
   } catch (err) {
     console.error("Error al guardar producto:", err)
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -254,8 +288,15 @@ const editarProducto = (prod) => {
     descripcion: prod.descripcion || '',
     disponible: prod.disponible
   }
-  imagenPrevia.value = prod.imagen_url
-  fileToUpload.value = null
+  
+  const urls = prod.imagen_url ? prod.imagen_url.split(',') : []
+  imagenesProducto.value = urls.map((url, index) => ({
+    id: index,
+    url: url,
+    blob: null,
+    isExisting: true
+  }))
+  
   mostrarModal.value = true
 }
 
@@ -278,9 +319,15 @@ const cerrarModal = () => {
   mostrarModal.value = false
   productoEnEdicion.value = null
   nuevoProducto.value = { nombre: '', precio: '', descripcion: '', disponible: true }
-  imagenPrevia.value = null
-  fileToUpload.value = null
-  if (fileInput.value) fileInput.value.value = null
+  
+  imagenesProducto.value.forEach((img) => {
+    if (!img.isExisting && img.url) {
+      URL.revokeObjectURL(img.url)
+    }
+  })
+  imagenesProducto.value = []
+  
+  if (fileInput.value) fileInput.value.value = ''
 }
 
 const simularPago = async () => {
@@ -389,70 +436,11 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="admin-card" style="margin-bottom: 2rem;">
-          <h3 style="margin-bottom: 1rem;">Editar Datos de la Tienda 📝</h3>
-          <p style="color: var(--color-text-light); margin-bottom: 1.5rem; font-size: 0.9rem;">
-            Actualiza el nombre, descripción y datos de contacto de tu negocio.
-            <span style="display: block; margin-top: 0.5rem; font-weight: bold; color: var(--color-primary);" v-if="formPerfil.nombre !== meInfo.comercio.nombre">
-              ⚠️ Nota: Cambiar el nombre modificará tu enlace de catálogo.
-            </span>
-          </p>
 
-          <!-- LOGO DE LA TIENDA -->
-          <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem; background: rgba(128,128,128,0.05); padding: 1rem; border-radius: var(--radius-lg);">
-            <div style="position: relative; width: 80px; height: 80px;">
-              <img v-if="logoPrevia" :src="logoPrevia" alt="Logo Previo" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-primary);" />
-              <div v-else style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover)); display: flex; justify-content: center; align-items: center; color: white; font-size: 2.2rem;">
-                🛍️
-              </div>
-            </div>
-            <div>
-              <label class="btn-primary" style="width: auto; display: inline-block; cursor: pointer; padding: 0.5rem 1rem; font-size: 0.85rem; background: var(--color-text-light);">
-                Subir nuevo logo
-                <input ref="fileInputLogo" type="file" accept="image/*" @change="procesarLogo" style="display: none;" />
-              </label>
-              <p style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.4rem;">Formatos recomendados: PNG, JPG, WEBP. Tamaño max: 300x300px.</p>
-            </div>
-          </div>
-          
-          <form @submit.prevent="guardarPerfil">
-            <div class="form-group">
-              <label>Nombre del Negocio</label>
-              <input v-model="formPerfil.nombre" type="text" class="form-input" required />
-            </div>
-            
-            <div class="form-group">
-              <label>Descripción / Eslogan</label>
-              <textarea v-model="formPerfil.descripcion" class="form-input" rows="2" style="resize: vertical; font-family: inherit;"></textarea>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label>WhatsApp (con código de país)</label>
-                <input v-model="formPerfil.whatsapp" type="text" class="form-input" placeholder="ej: 5491122334455" required />
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label>Email de contacto</label>
-                <input v-model="formPerfil.email" type="email" class="form-input" required />
-              </div>
-            </div>
-
-            <div v-if="mensajePerfil" class="success-card" style="margin-bottom: 1.5rem; color: #10b981; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); padding: 0.75rem; border-radius: var(--radius-md); text-align: center; font-weight: 500;">
-              {{ mensajePerfil }}
-            </div>
-            <div v-if="errorPerfil" class="error-card" style="margin-bottom: 1.5rem; padding: 0.75rem;">
-              {{ errorPerfil }}
-            </div>
-
-            <button type="submit" class="btn-primary" style="width: auto; padding: 0.75rem 2rem;" :disabled="isUpdatingPerfil">
-              {{ isUpdatingPerfil ? 'Guardando...' : 'Guardar Cambios' }}
-            </button>
-          </form>
-        </div>
 
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h3>Mis Productos</h3>
-        <button @click="mostrarModal = true" class="btn-primary" style="width: auto;">+ Nuevo Producto</button>
+        <button @click="abrirNuevoProducto" class="btn-primary" style="width: auto;">+ Nuevo Producto</button>
       </div>
 
       <div v-if="isLoading" class="loader">Cargando productos...</div>
@@ -468,7 +456,7 @@ onMounted(() => {
 
       <div v-else class="product-grid">
         <div v-for="prod in productos" :key="prod.id" class="product-card">
-          <img v-if="prod.imagen_url" :src="prod.imagen_url" class="product-image-real" alt="Producto" @click="imagenAmpliada = prod.imagen_url" />
+          <img v-if="prod.imagen_url" :src="prod.imagen_url.split(',')[0]" class="product-image-real" alt="Producto" @click="imagenAmpliada = prod.imagen_url.split(',')[0]" />
           <div v-else class="product-image-placeholder"></div>
           <div class="product-info">
             <div style="display: flex; justify-content: space-between; align-items: start;">
@@ -483,6 +471,78 @@ onMounted(() => {
           </div>
         </div>
       </div>
+
+        <!-- Sección Colapsable para Editar Datos de la Tienda -->
+        <div class="admin-card" style="margin-top: 3rem;">
+          <div @click="mostrarPerfilForm = !mostrarPerfilForm" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;">
+            <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+              Editar Datos de la Tienda 📝
+            </h3>
+            <span style="font-size: 1.2rem; transition: transform 0.2s;" :style="{ transform: mostrarPerfilForm ? 'rotate(180deg)' : 'rotate(0)' }">
+              ▼
+            </span>
+          </div>
+
+          <div v-show="mostrarPerfilForm" style="margin-top: 1.5rem; border-top: 1px solid rgba(128,128,128,0.1); padding-top: 1.5rem;">
+            <p style="color: var(--color-text-light); margin-bottom: 1.5rem; font-size: 0.9rem;">
+              Actualiza el nombre, descripción y datos de contacto de tu negocio.
+              <span style="display: block; margin-top: 0.5rem; font-weight: bold; color: var(--color-primary);" v-if="formPerfil.nombre !== meInfo.comercio.nombre">
+                ⚠️ Nota: Cambiar el nombre modificará tu enlace de catálogo.
+              </span>
+            </p>
+
+            <!-- LOGO DE LA TIENDA -->
+            <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem; background: rgba(128,128,128,0.05); padding: 1rem; border-radius: var(--radius-lg);">
+              <div style="position: relative; width: 80px; height: 80px;">
+                <img v-if="logoPrevia" :src="logoPrevia" alt="Logo Previo" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-primary);" />
+                <div v-else style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover)); display: flex; justify-content: center; align-items: center; color: white; font-size: 2.2rem;">
+                  🛍️
+                </div>
+              </div>
+              <div>
+                <label class="btn-primary" style="width: auto; display: inline-block; cursor: pointer; padding: 0.5rem 1rem; font-size: 0.85rem; background: var(--color-text-light);">
+                  Subir nuevo logo
+                  <input ref="fileInputLogo" type="file" accept="image/*" @change="procesarLogo" style="display: none;" />
+                </label>
+                <p style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.4rem;">Formatos recomendados: PNG, JPG, WEBP. Tamaño max: 300x300px.</p>
+              </div>
+            </div>
+            
+            <form @submit.prevent="guardarPerfil">
+              <div class="form-group">
+                <label>Nombre del Negocio</label>
+                <input v-model="formPerfil.nombre" type="text" class="form-input" required />
+              </div>
+              
+              <div class="form-group">
+                <label>Descripción / Eslogan</label>
+                <textarea v-model="formPerfil.descripcion" class="form-input" rows="2" style="resize: vertical; font-family: inherit;"></textarea>
+              </div>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>WhatsApp (con código de país)</label>
+                  <input v-model="formPerfil.whatsapp" type="text" class="form-input" placeholder="ej: 5491122334455" required />
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Email de contacto</label>
+                  <input v-model="formPerfil.email" type="email" class="form-input" required />
+                </div>
+              </div>
+
+              <div v-if="mensajePerfil" class="success-card" style="margin-bottom: 1.5rem; color: #10b981; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); padding: 0.75rem; border-radius: var(--radius-md); text-align: center; font-weight: 500;">
+                {{ mensajePerfil }}
+              </div>
+              <div v-if="errorPerfil" class="error-card" style="margin-bottom: 1.5rem; padding: 0.75rem;">
+                {{ errorPerfil }}
+              </div>
+
+              <button type="submit" class="btn-primary" style="width: auto; padding: 0.75rem 2rem;" :disabled="isUpdatingPerfil">
+                {{ isUpdatingPerfil ? 'Guardando...' : 'Guardar Cambios' }}
+              </button>
+            </form>
+          </div>
+        </div>
       </template>
     </div>
 
@@ -493,23 +553,36 @@ onMounted(() => {
         
         <form @submit.prevent="submitProducto">
           
-          <div class="form-group text-center" style="margin-bottom: 1.5rem;">
-            <label style="display: block; margin-bottom: 0.5rem;">Foto del Producto (Opcional)</label>
-            <img v-if="imagenPrevia" :src="imagenPrevia" style="width: 100%; max-width: 200px; height: 200px; object-fit: cover; border-radius: var(--radius-md); margin-bottom: 1rem;" />
-            <div style="position: relative;">
-              <input 
-                ref="fileInput"
-                type="file" 
-                accept="image/*" 
-                capture="environment" 
-                @change="procesarImagen"
-                style="display: none;"
-                id="file-upload"
-              />
-              <label for="file-upload" class="btn-primary" style="display: inline-block; cursor: pointer; width: auto; background: var(--color-glass); color: var(--color-text);">
-                📸 Tomar o Elegir Foto
-              </label>
+          <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.75rem; font-weight: bold;">Fotos del Producto (Máx. 3)</label>
+            
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+              <!-- Miniaturas de imágenes cargadas -->
+              <div v-for="(img, idx) in imagenesProducto" :key="img.id" style="position: relative; width: 80px; height: 80px; border-radius: var(--radius-md); overflow: hidden; border: 2px solid var(--color-primary);">
+                <img :src="img.url" style="width: 100%; height: 100%; object-fit: cover;" />
+                <button type="button" @click="eliminarImagen(idx)" style="position: absolute; top: 4px; right: 4px; background: rgba(239, 68, 68, 0.9); color: white; border: none; border-radius: 50%; width: 20px; height: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 0.7rem; font-weight: bold; line-height: 1; border-color: transparent;">
+                  ✕
+                </button>
+              </div>
+
+              <!-- Slot vacío/botón para agregar -->
+              <div v-if="imagenesProducto.length < 3" style="position: relative; width: 80px; height: 80px;">
+                <input 
+                  ref="fileInput"
+                  type="file" 
+                  accept="image/*" 
+                  multiple
+                  @change="procesarImagen"
+                  style="display: none;"
+                  id="file-upload-multiple"
+                />
+                <label for="file-upload-multiple" style="width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 2px dashed rgba(128,128,128,0.3); border-radius: var(--radius-md); cursor: pointer; background: rgba(128,128,128,0.05); transition: background 0.2s; margin: 0;">
+                  <span style="font-size: 1.5rem; color: var(--color-text-light);">+</span>
+                  <span style="font-size: 0.65rem; color: var(--color-text-light);">Subir foto</span>
+                </label>
+              </div>
             </div>
+            <p style="font-size: 0.75rem; color: var(--color-text-light);">Formatos recomendados: PNG, JPG, WEBP. Se optimizarán automáticamente al subir.</p>
           </div>
 
           <div class="form-group">
