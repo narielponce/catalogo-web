@@ -30,6 +30,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-catalogo_db}
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-key}
+      - N8N_SECRET=${N8N_SECRET:-your-super-secret-n8n-key}
 
   frontend:
     image: ghcr.io/${GHCR_USERNAME:-tu_usuario_github}/catalogo-frontend:latest

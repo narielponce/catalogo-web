@@ -4,13 +4,12 @@ from sqlalchemy.future import select
 from datetime import datetime, timedelta, timezone
 from app.db.database import get_db
 from app.models import Comercio, Usuario
+from app.core.config import settings
 
 router = APIRouter(prefix="/internal/comercios", tags=["n8n-internal"])
 
-N8N_SECRET = "tu_clave_secreta_super_segura_aqui"
-
 def verify_n8n_token(x_n8n_secret_key: str = Header(...)):
-    if x_n8n_secret_key != N8N_SECRET:
+    if x_n8n_secret_key != settings.N8N_SECRET:
         raise HTTPException(status_code=403, detail="Forbidden")
 
 @router.get("/vencidos", dependencies=[Depends(verify_n8n_token)])
