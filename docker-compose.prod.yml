@@ -4,7 +4,7 @@ services:
   frontend:
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.catalog-web.rule=Host(`catalog.raizdigital.com.ar`)"
+      - "traefik.http.routers.catalog-web.rule=Host(`catalog.raizdigital.com.ar`) || Host(`tupedido.ar`) || Host(`www.tupedido.ar`)"
       - "traefik.http.routers.catalog-web.entrypoints=websecure"
       - "traefik.http.routers.catalog-web.tls=true"
       - "traefik.http.routers.catalog-web.tls.certresolver=letsencrypt"
