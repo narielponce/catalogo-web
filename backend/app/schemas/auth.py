@@ -28,3 +28,9 @@ class UsuarioOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class PerfilUpdate(BaseModel):
+    nombre: str
+    descripcion: Optional[str] = None
+    whatsapp: str
+    email: EmailStr

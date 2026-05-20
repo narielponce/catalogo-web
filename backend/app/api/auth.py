@@ -8,7 +8,7 @@ import uuid
 
 from app.db.database import get_db
 from app.models import Comercio, Usuario
-from app.schemas.auth import RegistroRequest, Token, UsuarioOut
+from app.schemas.auth import RegistroRequest, Token, UsuarioOut, PerfilUpdate
 from app.schemas.public import ComercioPublic
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.core.config import settings
@@ -172,3 +172,51 @@ async def simular_pago(
     await db.commit()
     
     return {"status": "success", "message": "Pago simulado con éxito. Cuenta activada."}
+
+@router.put("/me/perfil")
+async def update_perfil(
+    req: PerfilUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    if not current_user.comercio_id:
+        raise HTTPException(status_code=400, detail="El usuario no tiene un comercio")
+        
+    result = await db.execute(select(Comercio).filter(Comercio.id == current_user.comercio_id))
+    comercio = result.scalars().first()
+    
+    if not comercio:
+        raise HTTPException(status_code=404, detail="Comercio no encontrado")
+        
+    # Verificar si el email ya existe en otro usuario
+    if req.email != current_user.email:
+        result_email = await db.execute(select(Usuario).filter(Usuario.email == req.email, Usuario.id != current_user.id))
+        if result_email.scalars().first():
+            raise HTTPException(status_code=400, detail="El email ya está registrado por otro usuario")
+        current_user.email = req.email
+        
+    # Si cambia el nombre, regeneramos el slug (puede cambiar la URL)
+    if req.nombre != comercio.nombre:
+        slug_base = generar_slug(req.nombre)
+        slug = slug_base
+        result_slug = await db.execute(select(Comercio).filter(Comercio.slug == slug, Comercio.id != comercio.id))
+        if result_slug.scalars().first():
+            slug = f"{slug_base}-{req.whatsapp[-4:]}"
+        comercio.slug = slug
+
+    comercio.nombre = req.nombre
+    comercio.descripcion = req.descripcion
+    comercio.whatsapp = req.whatsapp
+    
+    await db.commit()
+    
+    return {
+        "status": "success",
+        "email": current_user.email,
+        "comercio": {
+            "nombre": comercio.nombre,
+            "slug": comercio.slug,
+            "whatsapp": comercio.whatsapp,
+            "descripcion": comercio.descripcion
+        }
+    }

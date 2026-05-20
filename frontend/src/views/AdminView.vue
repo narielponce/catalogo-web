@@ -33,12 +33,33 @@ const nuevoProducto = ref({
   disponible: true
 })
 
+const formPerfil = ref({
+  nombre: '',
+  descripcion: '',
+  whatsapp: '',
+  email: ''
+})
+const isUpdatingPerfil = ref(false)
+const mensajePerfil = ref('')
+const errorPerfil = ref('')
+
+const fileInputLogo = ref(null)
+const logoPrevia = ref(null)
+const fileLogoToUpload = ref(null)
+
 const cargarProductos = async () => {
   try {
     // Cargar info del usuario para obtener el slug
     const userData = await get('/api/auth/me')
     if (userData) {
       meInfo.value = userData
+      logoPrevia.value = userData.comercio.logo_url || null
+      formPerfil.value = {
+        nombre: userData.comercio.nombre,
+        descripcion: userData.comercio.descripcion || '',
+        whatsapp: userData.comercio.whatsapp,
+        email: userData.email
+      }
     }
 
     const data = await get('/api/productos/')
@@ -49,6 +70,83 @@ const cargarProductos = async () => {
     if (err.message.includes('401') || err.message.includes('No se pudo validar')) {
       handleLogout()
     }
+  }
+}
+
+const procesarLogo = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      let width = img.width
+      let height = img.height
+
+      if (width > 300) {
+        height = Math.round((height * 300) / width)
+        width = 300
+      }
+
+      canvas.width = width
+      canvas.height = height
+
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, width, height)
+
+      canvas.toBlob((blob) => {
+        fileLogoToUpload.value = blob
+        logoPrevia.value = URL.createObjectURL(blob)
+      }, 'image/webp', 0.8)
+    }
+    img.src = e.target.result
+  }
+  reader.readAsDataURL(file)
+}
+
+const guardarPerfil = async () => {
+  isUpdatingPerfil.value = true
+  mensajePerfil.value = ''
+  errorPerfil.value = ''
+  try {
+    // Si hay un logo nuevo para subir, lo subimos primero
+    if (fileLogoToUpload.value) {
+      const formData = new FormData()
+      formData.append('file', fileLogoToUpload.value, 'logo.webp')
+      
+      const token = localStorage.getItem('token')
+      const response = await fetch('/api/auth/me/logo', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      })
+      
+      if (!response.ok) throw new Error("Error al subir el logo de la tienda")
+      const dataLogo = await response.json()
+      logoPrevia.value = dataLogo.logo_url
+      if (meInfo.value) {
+        meInfo.value.comercio.logo_url = dataLogo.logo_url
+      }
+      fileLogoToUpload.value = null
+    }
+
+    const res = await put('/api/auth/me/perfil', formPerfil.value)
+    if (res && res.status === 'success') {
+      mensajePerfil.value = '¡Perfil de tienda actualizado con éxito!'
+      
+      // Actualizar localmente la info del usuario/comercio
+      meInfo.value.email = res.email
+      meInfo.value.comercio.nombre = res.comercio.nombre
+      meInfo.value.comercio.slug = res.comercio.slug
+      meInfo.value.comercio.whatsapp = res.comercio.whatsapp
+      meInfo.value.comercio.descripcion = res.comercio.descripcion
+    }
+  } catch (err) {
+    errorPerfil.value = err.message || 'Error al guardar los cambios'
+  } finally {
+    isUpdatingPerfil.value = false
   }
 }
 
@@ -289,6 +387,67 @@ onMounted(() => {
               <span v-if="meInfo.comercio.tema === tema.id" style="color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1rem;">✓</span>
             </button>
           </div>
+        </div>
+
+        <div class="admin-card" style="margin-bottom: 2rem;">
+          <h3 style="margin-bottom: 1rem;">Editar Datos de la Tienda 📝</h3>
+          <p style="color: var(--color-text-light); margin-bottom: 1.5rem; font-size: 0.9rem;">
+            Actualiza el nombre, descripción y datos de contacto de tu negocio.
+            <span style="display: block; margin-top: 0.5rem; font-weight: bold; color: var(--color-primary);" v-if="formPerfil.nombre !== meInfo.comercio.nombre">
+              ⚠️ Nota: Cambiar el nombre modificará tu enlace de catálogo.
+            </span>
+          </p>
+
+          <!-- LOGO DE LA TIENDA -->
+          <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem; background: rgba(128,128,128,0.05); padding: 1rem; border-radius: var(--radius-lg);">
+            <div style="position: relative; width: 80px; height: 80px;">
+              <img v-if="logoPrevia" :src="logoPrevia" alt="Logo Previo" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-primary);" />
+              <div v-else style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover)); display: flex; justify-content: center; align-items: center; color: white; font-size: 2.2rem;">
+                🛍️
+              </div>
+            </div>
+            <div>
+              <label class="btn-primary" style="width: auto; display: inline-block; cursor: pointer; padding: 0.5rem 1rem; font-size: 0.85rem; background: var(--color-text-light);">
+                Subir nuevo logo
+                <input ref="fileInputLogo" type="file" accept="image/*" @change="procesarLogo" style="display: none;" />
+              </label>
+              <p style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.4rem;">Formatos recomendados: PNG, JPG, WEBP. Tamaño max: 300x300px.</p>
+            </div>
+          </div>
+          
+          <form @submit.prevent="guardarPerfil">
+            <div class="form-group">
+              <label>Nombre del Negocio</label>
+              <input v-model="formPerfil.nombre" type="text" class="form-input" required />
+            </div>
+            
+            <div class="form-group">
+              <label>Descripción / Eslogan</label>
+              <textarea v-model="formPerfil.descripcion" class="form-input" rows="2" style="resize: vertical; font-family: inherit;"></textarea>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label>WhatsApp (con código de país)</label>
+                <input v-model="formPerfil.whatsapp" type="text" class="form-input" placeholder="ej: 5491122334455" required />
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label>Email de contacto</label>
+                <input v-model="formPerfil.email" type="email" class="form-input" required />
+              </div>
+            </div>
+
+            <div v-if="mensajePerfil" class="success-card" style="margin-bottom: 1.5rem; color: #10b981; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); padding: 0.75rem; border-radius: var(--radius-md); text-align: center; font-weight: 500;">
+              {{ mensajePerfil }}
+            </div>
+            <div v-if="errorPerfil" class="error-card" style="margin-bottom: 1.5rem; padding: 0.75rem;">
+              {{ errorPerfil }}
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: auto; padding: 0.75rem 2rem;" :disabled="isUpdatingPerfil">
+              {{ isUpdatingPerfil ? 'Guardando...' : 'Guardar Cambios' }}
+            </button>
+          </form>
         </div>
 
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
