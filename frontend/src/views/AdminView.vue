@@ -215,6 +215,13 @@ const cambiarTema = async (temaId) => {
   }
 }
 
+const formatearPrecio = (valor) => {
+  return new Intl.NumberFormat('es-AR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(valor)
+}
+
 onMounted(() => {
   cargarProductos()
 })
@@ -309,7 +316,7 @@ onMounted(() => {
               <h3 style="margin: 0; margin-bottom: 0.25rem;">{{ prod.nombre }}</h3>
               <span v-if="!prod.disponible" style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold;">Inactivo</span>
             </div>
-            <p>${{ prod.precio }}</p>
+            <p>${{ formatearPrecio(prod.precio) }}</p>
             <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
               <button @click="editarProducto(prod)" class="btn-primary" style="background: var(--color-text-light); padding: 0.5rem; font-size: 0.8rem;">Editar</button>
               <button @click="borrarProducto(prod)" class="btn-primary" style="background: #ef4444; padding: 0.5rem; font-size: 0.8rem;">Borrar</button>

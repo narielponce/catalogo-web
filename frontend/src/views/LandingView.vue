@@ -7,7 +7,7 @@
     <nav class="landing-nav">
       <div class="logo-container">
         <span class="logo-icon">🛍️</span>
-        <span class="logo-text">CatálogoSaaS</span>
+        <span class="logo-text">TuPedido.ar</span>
       </div>
       <div class="nav-actions">
         <router-link to="/login" class="nav-link">Iniciar Sesión</router-link>
@@ -58,7 +58,11 @@
 
     <!-- Footer Simple -->
     <footer class="landing-footer">
-      <p>© 2026 CatálogoSaaS. Diseñado para emprendedores.</p>
+      <p>
+        <a href="https://www.raizdigital.com.ar" target="_blank" class="footer-link">
+          @2026 Raiz Digital
+        </a>
+      </p>
     </footer>
   </div>
 </template>
@@ -285,7 +289,6 @@
   font-size: 0.95rem;
 }
 
-/* Footer */
 .landing-footer {
   text-align: center;
   padding: 2rem;
@@ -293,6 +296,17 @@
   font-size: 0.85rem;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   margin-top: auto;
+}
+
+.footer-link {
+  color: var(--color-text-light);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.footer-link:hover {
+  color: var(--color-primary);
 }
 
 /* Responsive adjustments */

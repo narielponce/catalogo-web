@@ -44,6 +44,13 @@ const modificarCantidad = (producto, delta) => {
   }
 }
 
+const formatearPrecio = (valor) => {
+  return new Intl.NumberFormat('es-AR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(valor)
+}
+
 const enviarPedidoPorWhatsApp = () => {
   if (!comercio.value || carrito.value.length === 0) return
   
@@ -51,10 +58,10 @@ const enviarPedidoPorWhatsApp = () => {
   let mensaje = `Hola! Quiero hacer este pedido:\n`
   
   carrito.value.forEach(item => {
-    mensaje += `- ${item.cantidad}x ${item.producto.nombre} ($${item.producto.precio * item.cantidad})\n`
+    mensaje += `- ${item.cantidad}x ${item.producto.nombre} ($${formatearPrecio(item.producto.precio * item.cantidad)})\n`
   })
   
-  mensaje += `\nTotal a pagar: $${precioTotal.value}`
+  mensaje += `\nTotal a pagar: $${formatearPrecio(precioTotal.value)}`
   
   const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`
   window.open(url, '_blank')
@@ -140,7 +147,7 @@ onUnmounted(() => {
             <p v-if="prod.descripcion" style="font-size: 0.9rem; color: var(--color-text-light); margin-bottom: 0.5rem; font-weight: normal;">
               {{ prod.descripcion }}
             </p>
-            <p>${{ prod.precio }}</p>
+            <p>${{ formatearPrecio(prod.precio) }}</p>
             
             <div v-if="obtenerCantidad(prod) > 0" style="display: flex; align-items: center; justify-content: space-between; background: rgba(128,128,128,0.1); border-radius: var(--radius-md); padding: 0.5rem; margin-top: 1rem;">
               <button @click="modificarCantidad(prod, -1)" class="btn-primary" style="width: 32px; height: 32px; padding: 0; border-radius: 50%; background: var(--color-text-light);">-</button>
@@ -169,7 +176,7 @@ onUnmounted(() => {
       class="cart-floating-btn"
     >
       <span class="cart-badge">{{ cantidadTotal }}</span>
-      🛒 Ver Carrito - ${{ precioTotal }}
+      🛒 Ver Carrito - ${{ formatearPrecio(precioTotal) }}
     </button>
 
     <!-- Modal del Carrito -->
@@ -195,13 +202,13 @@ onUnmounted(() => {
               </div>
             </div>
             <div style="font-weight: bold; font-size: 1.1rem; color: var(--color-primary);">
-              ${{ item.producto.precio * item.cantidad }}
+              ${{ formatearPrecio(item.producto.precio * item.cantidad) }}
             </div>
           </div>
           
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; font-size: 1.3rem; font-weight: bold;">
             <span>Total:</span>
-            <span>${{ precioTotal }}</span>
+            <span>${{ formatearPrecio(precioTotal) }}</span>
           </div>
           
           <button @click="enviarPedidoPorWhatsApp" class="btn-primary" style="margin-top: 2rem; background-color: #25D366; padding: 1rem; font-size: 1.1rem;">

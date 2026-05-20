@@ -112,7 +112,7 @@ const handleRegister = async () => {
       <!-- Left side: Headers and Logo Upload -->
       <div class="google-left">
         <router-link to="/" class="logo-text">
-          <span class="logo-icon">🛍️</span> CatálogoSaaS
+          <span class="logo-icon">🛍️</span> TuPedido.ar
         </router-link>
         
         <h1 class="main-title">Crea tu Catálogo</h1>

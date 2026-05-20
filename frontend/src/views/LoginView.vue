@@ -44,7 +44,7 @@ const handleLogin = async () => {
     <nav class="landing-nav" style="position: absolute;">
       <router-link to="/" class="logo-container" style="text-decoration: none; color: var(--color-text);">
         <span class="logo-icon">🛍️</span>
-        <span class="logo-text">CatálogoSaaS</span>
+        <span class="logo-text">TuPedido.ar</span>
       </router-link>
       <div class="nav-actions">
         <router-link to="/register" class="nav-link">Crear Catálogo</router-link>
