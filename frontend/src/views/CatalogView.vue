@@ -85,16 +85,61 @@ onMounted(async () => {
     // Aplicar tema si existe
     if (comercio.value && comercio.value.tema) {
       const themes = {
-        'terracotta': '#ea580c',
-        'blue': '#3b82f6',
-        'emerald': '#10b981',
-        'violet': '#8b5cf6',
-        'dark': '#111827'
+        'terracotta': {
+          primary: '#ea580c',
+          primaryHover: '#c2410c',
+          bg: '#fffbf7',
+          text: '#292524',
+          textLight: '#78716c',
+          surface: 'rgba(255, 255, 255, 0.75)',
+          surfaceHover: 'rgba(255, 255, 255, 0.9)'
+        },
+        'blue': {
+          primary: '#2563eb',
+          primaryHover: '#1d4ed8',
+          bg: '#f8fafc',
+          text: '#0f172a',
+          textLight: '#64748b',
+          surface: 'rgba(255, 255, 255, 0.8)',
+          surfaceHover: 'rgba(255, 255, 255, 0.95)'
+        },
+        'emerald': {
+          primary: '#059669',
+          primaryHover: '#047857',
+          bg: '#f0fdf4',
+          text: '#064e3b',
+          textLight: '#374151',
+          surface: 'rgba(255, 255, 255, 0.8)',
+          surfaceHover: 'rgba(255, 255, 255, 0.95)'
+        },
+        'violet': {
+          primary: '#7c3aed',
+          primaryHover: '#6d28d9',
+          bg: '#faf5ff',
+          text: '#3b0764',
+          textLight: '#4b5563',
+          surface: 'rgba(255, 255, 255, 0.8)',
+          surfaceHover: 'rgba(255, 255, 255, 0.95)'
+        },
+        'dark': {
+          primary: '#f97316',
+          primaryHover: '#ea580c',
+          bg: '#0c0a09',
+          text: '#fafaf9',
+          textLight: '#a8a29e',
+          surface: 'rgba(28, 25, 23, 0.7)',
+          surfaceHover: 'rgba(41, 37, 36, 0.9)'
+        }
       }
-      const colorHex = themes[comercio.value.tema] || '#ea580c'
-      document.documentElement.style.setProperty('--color-primary', colorHex)
-      // Opcional: Generar un color hover oscureciendo un poco
-      document.documentElement.style.setProperty('--color-primary-hover', colorHex + 'dd')
+      const theme = themes[comercio.value.tema] || themes['terracotta']
+      
+      document.documentElement.style.setProperty('--color-primary', theme.primary)
+      document.documentElement.style.setProperty('--color-primary-hover', theme.primaryHover)
+      document.documentElement.style.setProperty('--color-bg', theme.bg)
+      document.documentElement.style.setProperty('--color-text', theme.text)
+      document.documentElement.style.setProperty('--color-text-light', theme.textLight)
+      document.documentElement.style.setProperty('--color-surface', theme.surface)
+      document.documentElement.style.setProperty('--color-surface-hover', theme.surfaceHover)
     }
   } catch (err) {
     console.error('Catálogo no encontrado', err)
@@ -105,6 +150,11 @@ onUnmounted(() => {
   // Restaurar los colores del sistema (para Landing y Panel de Control)
   document.documentElement.style.removeProperty('--color-primary')
   document.documentElement.style.removeProperty('--color-primary-hover')
+  document.documentElement.style.removeProperty('--color-bg')
+  document.documentElement.style.removeProperty('--color-text')
+  document.documentElement.style.removeProperty('--color-text-light')
+  document.documentElement.style.removeProperty('--color-surface')
+  document.documentElement.style.removeProperty('--color-surface-hover')
 })
 
 // Eliminamos la función comprarPorWhatsApp vieja, ya no se usa.
