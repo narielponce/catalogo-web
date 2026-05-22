@@ -5,6 +5,7 @@ from sqlalchemy.future import select
 from datetime import timedelta, datetime, timezone
 import re
 import uuid
+import mercadopago
 
 from app.db.database import get_db
 from app.models import Comercio, Usuario
@@ -185,21 +186,41 @@ async def upload_portada(
     
     return {"portada_url": portada_url}
 
-@router.post("/me/simular-pago")
-async def simular_pago(
+@router.post("/me/crear-preferencia")
+async def crear_preferencia(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    result = await db.execute(select(Comercio).filter(Comercio.id == current_user.comercio_id))
-    comercio = result.scalars().first()
-    
-    if not comercio:
-        raise HTTPException(status_code=404, detail="Comercio no encontrado")
-        
-    comercio.activo = True
-    await db.commit()
-    
-    return {"status": "success", "message": "Pago simulado con éxito. Cuenta activada."}
+    sdk = mercadopago.SDK(settings.MP_ACCESS_TOKEN)
+
+    preference_data = {
+        "items": [
+            {
+                "title": "Suscripción Mensual - TuPedido.ar",
+                "quantity": 1,
+                "unit_price": 1000.00,
+            }
+        ],
+        "payer": {
+            "email": current_user.email
+        },
+        "back_urls": {
+            "success": "https://tupedido.ar/admin?pago=exito",
+            "failure": "https://tupedido.ar/admin?pago=error",
+            "pending": "https://tupedido.ar/admin?pago=pendiente"
+        },
+        "auto_return": "approved",
+        "external_reference": str(current_user.comercio_id),
+        # Reemplazar url con la IP o dominio real de n8n
+        "notification_url": "https://n8n.raizdigital.com.ar/webhook/mercadopago-tupedido"
+    }
+
+    try:
+        preference_response = sdk.preference().create(preference_data)
+        preference = preference_response["response"]
+        return {"init_point": preference["init_point"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/me/perfil")
 async def update_perfil(

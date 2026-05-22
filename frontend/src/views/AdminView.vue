@@ -390,15 +390,15 @@ const cerrarModal = () => {
 
 const simularPago = async () => {
   try {
-    const data = await post('/api/auth/me/simular-pago')
-    if (data && data.status === 'success') {
-      const userData = await get('/api/auth/me')
-      if (userData) {
-        meInfo.value = userData
-      }
+    isLoading.value = true
+    const data = await post('/api/auth/me/crear-preferencia')
+    if (data && data.init_point) {
+      window.location.href = data.init_point
     }
   } catch (err) {
-    console.error('Error al simular pago', err)
+    console.error('Error al generar link de pago', err)
+  } finally {
+    isLoading.value = false
   }
 }
 
