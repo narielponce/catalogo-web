@@ -9,7 +9,7 @@ const { get, isLoading, error } = useApi()
 
 const comercio = ref(null)
 const productos = ref([])
-const imagenAmpliada = ref(null)
+const imagenAmpliadaInfo = ref(null)
 
 // --- Estado del Carrito ---
 const carrito = ref([])
@@ -222,7 +222,7 @@ onUnmounted(() => {
               :src="obtenerImagenes(prod.imagen_url)[getActiveIndex(prod.id)]" 
               class="product-image-real" 
               alt="Producto" 
-              @click="imagenAmpliada = obtenerImagenes(prod.imagen_url)[getActiveIndex(prod.id)]"
+              @click="imagenAmpliadaInfo = { urls: obtenerImagenes(prod.imagen_url), currentIndex: getActiveIndex(prod.id) }"
               style="width: 100%; height: 100%; object-fit: cover; cursor: pointer; transition: opacity 0.3s ease; border-radius: 0;"
             />
             
@@ -279,9 +279,23 @@ onUnmounted(() => {
     </div>
 
     <!-- Modal Imagen Ampliada -->
-    <div v-if="imagenAmpliada" class="modal-overlay" @click.self="imagenAmpliada = null" style="background: rgba(0,0,0,0.85); z-index: 2000; padding: 2rem;">
-      <button @click="imagenAmpliada = null" style="position: absolute; top: 1.5rem; right: 1.5rem; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 2rem; cursor: pointer; border-radius: 50%; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(4px);">&times;</button>
-      <img :src="imagenAmpliada" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--radius-md); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);" />
+    <div v-if="imagenAmpliadaInfo" class="modal-overlay" @click.self="imagenAmpliadaInfo = null" style="background: rgba(0,0,0,0.85); z-index: 2000; padding: 2rem;">
+      <button @click="imagenAmpliadaInfo = null" style="position: absolute; top: 1.5rem; right: 1.5rem; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 2rem; cursor: pointer; border-radius: 50%; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(4px);">&times;</button>
+      
+      <button v-if="imagenAmpliadaInfo.urls.length > 1" @click.stop="imagenAmpliadaInfo.currentIndex = (imagenAmpliadaInfo.currentIndex - 1 + imagenAmpliadaInfo.urls.length) % imagenAmpliadaInfo.urls.length" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 50%; width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 2rem; backdrop-filter: blur(4px); z-index: 2010;">
+        ‹
+      </button>
+
+      <img :src="imagenAmpliadaInfo.urls[imagenAmpliadaInfo.currentIndex]" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--radius-md); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);" />
+
+      <button v-if="imagenAmpliadaInfo.urls.length > 1" @click.stop="imagenAmpliadaInfo.currentIndex = (imagenAmpliadaInfo.currentIndex + 1) % imagenAmpliadaInfo.urls.length" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 50%; width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 2rem; backdrop-filter: blur(4px); z-index: 2010;">
+        ›
+      </button>
+      
+      <!-- Puntos de paginación -->
+      <div v-if="imagenAmpliadaInfo.urls.length > 1" style="position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); display: flex; gap: 8px;">
+        <span v-for="(img, idx) in imagenAmpliadaInfo.urls" :key="idx" @click.stop="imagenAmpliadaInfo.currentIndex = idx" style="width: 10px; height: 10px; border-radius: 50%; cursor: pointer; transition: all 0.2s;" :style="{ background: idx === imagenAmpliadaInfo.currentIndex ? 'var(--color-primary)' : 'rgba(255,255,255,0.5)', transform: idx === imagenAmpliadaInfo.currentIndex ? 'scale(1.2)' : 'scale(1)' }"></span>
+      </div>
     </div>
 
     <!-- Botón flotante del Carrito -->
