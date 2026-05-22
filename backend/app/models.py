@@ -14,6 +14,7 @@ class Comercio(Base):
     slug = Column(String(100), unique=True, index=True, nullable=False) # ej: misitio.com/slug
     descripcion = Column(String(200), nullable=True)
     logo_url = Column(String(500), nullable=True)
+    portada_url = Column(String(500), nullable=True)
     whatsapp = Column(String(20), nullable=False)
     tema = Column(String(50), default="terracotta")
     activo = Column(Boolean, default=True)

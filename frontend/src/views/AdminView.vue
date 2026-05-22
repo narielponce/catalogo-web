@@ -47,6 +47,10 @@ const fileInputLogo = ref(null)
 const logoPrevia = ref(null)
 const fileLogoToUpload = ref(null)
 
+const fileInputPortada = ref(null)
+const portadaPrevia = ref(null)
+const filePortadaToUpload = ref(null)
+
 const cargarProductos = async () => {
   try {
     // Cargar info del usuario para obtener el slug
@@ -54,6 +58,7 @@ const cargarProductos = async () => {
     if (userData) {
       meInfo.value = userData
       logoPrevia.value = userData.comercio.logo_url || null
+      portadaPrevia.value = userData.comercio.portada_url || null
       formPerfil.value = {
         nombre: userData.comercio.nombre,
         descripcion: userData.comercio.descripcion || '',
@@ -106,6 +111,39 @@ const procesarLogo = (event) => {
   reader.readAsDataURL(file)
 }
 
+const procesarPortada = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      let width = img.width
+      let height = img.height
+
+      if (width > 1200) {
+        height = Math.round((height * 1200) / width)
+        width = 1200
+      }
+
+      canvas.width = width
+      canvas.height = height
+
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, width, height)
+
+      canvas.toBlob((blob) => {
+        filePortadaToUpload.value = blob
+        portadaPrevia.value = URL.createObjectURL(blob)
+      }, 'image/webp', 0.8)
+    }
+    img.src = e.target.result
+  }
+  reader.readAsDataURL(file)
+}
+
 const guardarPerfil = async () => {
   isUpdatingPerfil.value = true
   mensajePerfil.value = ''
@@ -130,6 +168,26 @@ const guardarPerfil = async () => {
         meInfo.value.comercio.logo_url = dataLogo.logo_url
       }
       fileLogoToUpload.value = null
+    }
+
+    if (filePortadaToUpload.value) {
+      const formData = new FormData()
+      formData.append('file', filePortadaToUpload.value, 'portada.webp')
+      
+      const token = localStorage.getItem('token')
+      const response = await fetch('/api/auth/me/portada', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      })
+      
+      if (!response.ok) throw new Error("Error al subir la portada de la tienda")
+      const dataPortada = await response.json()
+      portadaPrevia.value = dataPortada.portada_url
+      if (meInfo.value) {
+        meInfo.value.comercio.portada_url = dataPortada.portada_url
+      }
+      filePortadaToUpload.value = null
     }
 
     const res = await put('/api/auth/me/perfil', formPerfil.value)
@@ -414,7 +472,7 @@ onMounted(() => {
           </a>
         </div>
 
-        <div class="admin-card" style="margin-bottom: 2rem;">
+        <div class="admin-card theme-card" style="margin-bottom: 2rem;">
           <h3 style="margin-bottom: 1rem;">Personaliza tu Tienda 🎨</h3>
           <p style="color: var(--color-text-light); margin-bottom: 1rem; font-size: 0.9rem;">Elige el color principal de tu catálogo público.</p>
           <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
@@ -505,6 +563,24 @@ onMounted(() => {
                   <input ref="fileInputLogo" type="file" accept="image/*" @change="procesarLogo" style="display: none;" />
                 </label>
                 <p style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.4rem;">Formatos recomendados: PNG, JPG, WEBP. Tamaño max: 300x300px.</p>
+              </div>
+            </div>
+
+            <!-- PORTADA DE LA TIENDA -->
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem; background: rgba(128,128,128,0.05); padding: 1rem; border-radius: var(--radius-lg);">
+              <label style="font-weight: 500; color: var(--color-text-light);">Portada de la Tienda</label>
+              <div style="position: relative; width: 100%; height: 120px; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(128,128,128,0.1), rgba(128,128,128,0.2));">
+                <img v-if="portadaPrevia" :src="portadaPrevia" alt="Portada Previa" style="width: 100%; height: 100%; object-fit: cover;" />
+                <div v-else style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; color: var(--color-text-light);">
+                  Sin imagen de portada
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label class="btn-primary" style="width: auto; display: inline-block; cursor: pointer; padding: 0.5rem 1rem; font-size: 0.85rem; background: var(--color-text-light);">
+                  Subir nueva portada
+                  <input ref="fileInputPortada" type="file" accept="image/*" @change="procesarPortada" style="display: none;" />
+                </label>
+                <p style="font-size: 0.75rem; color: var(--color-text-light); margin: 0;">Recomendado: 1200x400px.</p>
               </div>
             </div>
             
@@ -624,3 +700,16 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.theme-card {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+@media (prefers-color-scheme: dark) {
+  .theme-card {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  }
+}
+</style>

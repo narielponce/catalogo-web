@@ -176,13 +176,25 @@ onUnmounted(() => {
 
 <template>
   <main class="catalog-container">
-    <header class="glass-header text-center" v-if="comercio" style="padding: 2rem 1.5rem;">
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-        <img v-if="comercio.logo_url" :src="comercio.logo_url" alt="Logo" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-primary); box-shadow: var(--shadow-md);" />
-        <div v-else style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover)); display: flex; justify-content: center; align-items: center; color: white; font-size: 2.5rem; box-shadow: var(--shadow-md);">
-          🛍️
+    <header v-if="comercio" style="position: relative; background: var(--color-surface); margin-bottom: 2rem; border-bottom-left-radius: var(--radius-lg); border-bottom-right-radius: var(--radius-lg); box-shadow: var(--shadow-glass); overflow: hidden;">
+      <!-- Portada -->
+      <div class="portada-container">
+        <img v-if="comercio.portada_url" :src="comercio.portada_url" alt="Portada" class="portada-img" />
+        <div v-else class="portada-img" style="background: linear-gradient(135deg, rgba(128,128,128,0.1), rgba(128,128,128,0.2));"></div>
+      </div>
+
+      <!-- Contenido Solapado -->
+      <div class="header-content text-center" style="padding: 0 1.5rem 2rem 1.5rem; display: flex; flex-direction: column; align-items: center;">
+        <!-- Logo solapado -->
+        <div class="logo-wrapper">
+          <img v-if="comercio.logo_url" :src="comercio.logo_url" alt="Logo" class="logo-img" />
+          <div v-else class="logo-img placeholder-logo">
+            🛍️
+          </div>
         </div>
-        <div>
+        
+        <!-- Textos -->
+        <div style="margin-top: 1rem;">
           <h1 style="margin-bottom: 0.25rem; font-size: 2rem;">{{ comercio.nombre }}</h1>
           <p v-if="comercio.descripcion" style="color: var(--color-text-light); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">{{ comercio.descripcion }}</p>
         </div>
@@ -322,3 +334,51 @@ onUnmounted(() => {
     </div>
   </main>
 </template>
+
+<style scoped>
+.portada-container {
+  width: 100%;
+  height: 150px;
+}
+.portada-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.logo-wrapper {
+  margin-top: -50px;
+  position: relative;
+  z-index: 2;
+}
+.logo-img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--color-surface);
+  box-shadow: var(--shadow-md);
+  background: var(--color-surface);
+}
+.placeholder-logo {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 3rem;
+}
+@media (min-width: 768px) {
+  .portada-container {
+    height: 260px;
+  }
+  .logo-wrapper {
+    margin-top: -60px;
+  }
+  .logo-img {
+    width: 120px;
+    height: 120px;
+    border-width: 5px;
+  }
+}
+</style>

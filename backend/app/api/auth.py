@@ -101,6 +101,7 @@ async def get_me(db: AsyncSession = Depends(get_db), current_user: Usuario = Dep
                 "whatsapp": comercio.whatsapp,
                 "descripcion": comercio.descripcion,
                 "logo_url": comercio.logo_url,
+                "portada_url": comercio.portada_url,
                 "tema": comercio.tema,
                 "activo": comercio.activo,
                 "trial_vence": comercio.trial_vence.isoformat() if comercio.trial_vence else None
@@ -156,6 +157,33 @@ async def upload_logo(
     await db.commit()
     
     return {"logo_url": logo_url}
+
+@router.post("/me/portada")
+async def upload_portada(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="El archivo no es una imagen")
+        
+    file_extension = "webp" if "webp" in file.content_type else file.filename.split(".")[-1]
+    file_name = f"portada_{current_user.comercio_id}_{uuid.uuid4().hex[:8]}.{file_extension}"
+    file_path = f"/app/uploads/{file_name}"
+    
+    content = await file.read()
+    with open(file_path, 'wb') as out_file:
+        out_file.write(content)
+        
+    portada_url = f"/uploads/{file_name}"
+    
+    result = await db.execute(select(Comercio).filter(Comercio.id == current_user.comercio_id))
+    comercio = result.scalars().first()
+    comercio.portada_url = portada_url
+    
+    await db.commit()
+    
+    return {"portada_url": portada_url}
 
 @router.post("/me/simular-pago")
 async def simular_pago(

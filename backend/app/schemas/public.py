@@ -8,6 +8,7 @@ class ComercioPublic(BaseModel):
     whatsapp: str
     descripcion: Optional[str] = None
     logo_url: Optional[str] = None
+    portada_url: Optional[str] = None
     tema: str
 
     class Config:
