@@ -217,9 +217,22 @@ async def crear_preferencia(
 
     try:
         preference_response = sdk.preference().create(preference_data)
-        preference = preference_response["response"]
-        return {"init_point": preference["init_point"]}
+        status_code = preference_response.get("status", 500)
+        response_body = preference_response.get("response", {})
+        
+        if status_code >= 400 or "init_point" not in response_body:
+            print(f"Error al crear preferencia en MercadoPago (Status {status_code}): {response_body}")
+            error_message = response_body.get("message", "Error desconocido de MercadoPago")
+            raise HTTPException(
+                status_code=400,
+                detail=f"MercadoPago: {error_message}"
+            )
+            
+        return {"init_point": response_body["init_point"]}
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"Excepcion al crear preferencia de MercadoPago: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/me/perfil")
