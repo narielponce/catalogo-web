@@ -184,7 +184,7 @@ const handleRegister = async () => {
           </div>
           
           <div class="form-actions">
-            <router-link to="/login" class="btn-text-primary">Acceder en su lugar</router-link>
+            <router-link to="/login" class="btn-text-primary">Iniciar sesión</router-link>
             <button type="submit" class="btn-google-primary" :disabled="isLoading">
               {{ isLoading ? 'Creando...' : 'Siguiente' }}
             </button>

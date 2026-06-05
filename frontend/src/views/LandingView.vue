@@ -11,7 +11,6 @@
       </div>
       <div class="nav-actions">
         <router-link to="/login" class="nav-link">Iniciar Sesión</router-link>
-        <router-link to="/register" class="btn-primary nav-btn">Empezar</router-link>
       </div>
     </nav>
 
