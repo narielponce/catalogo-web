@@ -16,10 +16,7 @@ services:
       retries: 5
 
   backend:
-    image: ghcr.io/${GHCR_USERNAME:-tu_usuario_github}/catalogo-backend:latest
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/narielponce/catalogo-backend:latest
     container_name: catalogo_backend
     restart: always
     depends_on:
@@ -34,14 +31,26 @@ services:
       - MP_ACCESS_TOKEN=${MP_ACCESS_TOKEN}
 
   frontend:
-    image: ghcr.io/${GHCR_USERNAME:-tu_usuario_github}/catalogo-frontend:latest
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/narielponce/catalogo-frontend:latest
     container_name: catalogo_frontend
     restart: always
     depends_on:
       - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.catalog-web.rule=Host(`catalog.raizdigital.com.ar`) || Host(`tupedido.ar`) || Host(`www.tupedido.ar`)"
+      - "traefik.http.routers.catalog-web.entrypoints=websecure"
+      - "traefik.http.routers.catalog-web.tls=true"
+      - "traefik.http.routers.catalog-web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.catalog-web.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik-network"
+    networks:
+      - default
+      - traefik-network
 
 volumes:
   postgres_data:
+
+networks:
+  traefik-network:
+    external: true
