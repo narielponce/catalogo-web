@@ -106,6 +106,9 @@ const procesarLogo = (event) => {
         logoPrevia.value = URL.createObjectURL(blob)
       }, 'image/webp', 0.8)
     }
+    img.onerror = () => {
+      alert("La imagen seleccionada no es compatible o es demasiado pesada. Por favor, intenta con otra imagen (JPG, PNG o WEBP).")
+    }
     img.src = e.target.result
   }
   reader.readAsDataURL(file)
@@ -138,6 +141,9 @@ const procesarPortada = (event) => {
         filePortadaToUpload.value = blob
         portadaPrevia.value = URL.createObjectURL(blob)
       }, 'image/webp', 0.8)
+    }
+    img.onerror = () => {
+      alert("La imagen seleccionada no es compatible o es demasiado pesada. Por favor, intenta con otra imagen (JPG, PNG o WEBP).")
     }
     img.src = e.target.result
   }
@@ -270,6 +276,9 @@ const procesarImagen = (event) => {
             isExisting: false
           })
         }, 'image/webp', 0.8)
+      }
+      img.onerror = () => {
+        alert("La imagen seleccionada no es compatible o es demasiado pesada. Por favor, intenta con otra imagen (JPG, PNG o WEBP).")
       }
       img.src = e.target.result
     }
@@ -560,7 +569,7 @@ onMounted(() => {
               <div>
                 <label class="btn-primary" style="width: auto; display: inline-block; cursor: pointer; padding: 0.5rem 1rem; font-size: 0.85rem; background: var(--color-text-light);">
                   Subir nuevo logo
-                  <input ref="fileInputLogo" type="file" accept="image/*" @change="procesarLogo" style="display: none;" />
+                  <input ref="fileInputLogo" type="file" accept="image/jpeg, image/png, image/webp" @change="procesarLogo" style="display: none;" />
                 </label>
                 <p style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.4rem;">Formatos recomendados: PNG, JPG, WEBP. Tamaño max: 300x300px.</p>
               </div>
@@ -578,7 +587,7 @@ onMounted(() => {
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <label class="btn-primary" style="width: auto; display: inline-block; cursor: pointer; padding: 0.5rem 1rem; font-size: 0.85rem; background: var(--color-text-light);">
                   Subir nueva portada
-                  <input ref="fileInputPortada" type="file" accept="image/*" @change="procesarPortada" style="display: none;" />
+                  <input ref="fileInputPortada" type="file" accept="image/jpeg, image/png, image/webp" @change="procesarPortada" style="display: none;" />
                 </label>
                 <p style="font-size: 0.75rem; color: var(--color-text-light); margin: 0;">Recomendado: 1200x400px.</p>
               </div>
@@ -646,7 +655,7 @@ onMounted(() => {
                 <input 
                   ref="fileInput"
                   type="file" 
-                  accept="image/*" 
+                  accept="image/jpeg, image/png, image/webp" 
                   multiple
                   @change="procesarImagen"
                   style="display: none;"

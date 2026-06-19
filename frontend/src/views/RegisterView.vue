@@ -45,6 +45,9 @@ const procesarImagen = (event) => {
         imagenPrevia.value = URL.createObjectURL(blob)
       }, 'image/webp', 0.8)
     }
+    img.onerror = () => {
+      alert("La imagen seleccionada no es compatible o es demasiado pesada. Por favor, intenta con otra imagen (JPG, PNG o WEBP).")
+    }
     img.src = e.target.result
   }
   reader.readAsDataURL(file)
@@ -128,7 +131,7 @@ const handleRegister = async () => {
             <input 
               ref="fileInput"
               type="file" 
-              accept="image/*" 
+              accept="image/jpeg, image/png, image/webp" 
               @change="procesarImagen"
               style="display: none;"
               id="logo-upload"
