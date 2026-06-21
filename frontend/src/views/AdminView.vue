@@ -82,72 +82,72 @@ const procesarLogo = (event) => {
   const file = event.target.files[0]
   if (!file) return
 
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const img = new Image()
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      let width = img.width
-      let height = img.height
+  const img = new Image()
+  const objectUrl = URL.createObjectURL(file)
 
-      if (width > 300) {
-        height = Math.round((height * 300) / width)
-        width = 300
-      }
+  img.onload = () => {
+    const canvas = document.createElement('canvas')
+    let width = img.width
+    let height = img.height
 
-      canvas.width = width
-      canvas.height = height
-
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, width, height)
-
-      canvas.toBlob((blob) => {
-        fileLogoToUpload.value = blob
-        logoPrevia.value = URL.createObjectURL(blob)
-      }, 'image/webp', 0.8)
+    if (width > 300) {
+      height = Math.round((height * 300) / width)
+      width = 300
     }
-    img.onerror = () => {
-      alert("La imagen seleccionada no es compatible o es demasiado pesada. Por favor, intenta con otra imagen (JPG, PNG o WEBP).")
-    }
-    img.src = e.target.result
+
+    canvas.width = width
+    canvas.height = height
+
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, 0, 0, width, height)
+
+    canvas.toBlob((blob) => {
+      fileLogoToUpload.value = blob
+      logoPrevia.value = URL.createObjectURL(blob)
+      URL.revokeObjectURL(objectUrl)
+    }, 'image/webp', 0.8)
   }
-  reader.readAsDataURL(file)
+  img.onerror = () => {
+    URL.revokeObjectURL(objectUrl)
+    alert("La imagen seleccionada no es compatible o es demasiado pesada. Por favor, intenta con otra imagen (JPG, PNG o WEBP).")
+  }
+  img.src = objectUrl
 }
 
 const procesarPortada = (event) => {
   const file = event.target.files[0]
   if (!file) return
 
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const img = new Image()
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      let width = img.width
-      let height = img.height
+  const img = new Image()
+  const objectUrl = URL.createObjectURL(file)
 
-      if (width > 1200) {
-        height = Math.round((height * 1200) / width)
-        width = 1200
-      }
+  img.onload = () => {
+    const canvas = document.createElement('canvas')
+    let width = img.width
+    let height = img.height
 
-      canvas.width = width
-      canvas.height = height
-
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, width, height)
-
-      canvas.toBlob((blob) => {
-        filePortadaToUpload.value = blob
-        portadaPrevia.value = URL.createObjectURL(blob)
-      }, 'image/webp', 0.8)
+    if (width > 1200) {
+      height = Math.round((height * 1200) / width)
+      width = 1200
     }
-    img.onerror = () => {
-      alert("La imagen seleccionada no es compatible o es demasiado pesada. Por favor, intenta con otra imagen (JPG, PNG o WEBP).")
-    }
-    img.src = e.target.result
+
+    canvas.width = width
+    canvas.height = height
+
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, 0, 0, width, height)
+
+    canvas.toBlob((blob) => {
+      filePortadaToUpload.value = blob
+      portadaPrevia.value = URL.createObjectURL(blob)
+      URL.revokeObjectURL(objectUrl)
+    }, 'image/webp', 0.8)
   }
-  reader.readAsDataURL(file)
+  img.onerror = () => {
+    URL.revokeObjectURL(objectUrl)
+    alert("La imagen seleccionada no es compatible o es demasiado pesada. Por favor, intenta con otra imagen (JPG, PNG o WEBP).")
+  }
+  img.src = objectUrl
 }
 
 const guardarPerfil = async () => {
@@ -248,41 +248,41 @@ const procesarImagen = (event) => {
   const filesToProcess = Array.from(files).slice(0, espaciosDisponibles)
 
   filesToProcess.forEach((file) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        let width = img.width
-        let height = img.height
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
 
-        if (width > 800) {
-          height = Math.round((height * 800) / width)
-          width = 800
-        }
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      let width = img.width
+      let height = img.height
 
-        canvas.width = width
-        canvas.height = height
-
-        const ctx = canvas.getContext('2d')
-        ctx.drawImage(img, 0, 0, width, height)
-
-        canvas.toBlob((blob) => {
-          const tempUrl = URL.createObjectURL(blob)
-          imagenesProducto.value.push({
-            id: Date.now() + Math.random().toString(36).substr(2, 9),
-            url: tempUrl,
-            blob: blob,
-            isExisting: false
-          })
-        }, 'image/webp', 0.8)
+      if (width > 800) {
+        height = Math.round((height * 800) / width)
+        width = 800
       }
-      img.onerror = () => {
-        alert("La imagen seleccionada no es compatible o es demasiado pesada. Por favor, intenta con otra imagen (JPG, PNG o WEBP).")
-      }
-      img.src = e.target.result
+
+      canvas.width = width
+      canvas.height = height
+
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, width, height)
+
+      canvas.toBlob((blob) => {
+        const tempUrl = URL.createObjectURL(blob)
+        imagenesProducto.value.push({
+          id: Date.now() + Math.random().toString(36).substr(2, 9),
+          url: tempUrl,
+          blob: blob,
+          isExisting: false
+        })
+        URL.revokeObjectURL(objectUrl)
+      }, 'image/webp', 0.8)
     }
-    reader.readAsDataURL(file)
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      alert("La imagen seleccionada no es compatible o es demasiado pesada. Por favor, intenta con otra imagen (JPG, PNG o WEBP).")
+    }
+    img.src = objectUrl
   })
 
   if (fileInput.value) fileInput.value.value = ''

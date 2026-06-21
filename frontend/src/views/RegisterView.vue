@@ -20,37 +20,37 @@ const procesarImagen = (event) => {
   const file = event.target.files[0]
   if (!file) return
 
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const img = new Image()
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      let width = img.width
-      let height = img.height
+  const img = new Image()
+  const objectUrl = URL.createObjectURL(file)
 
-      if (width > 400) {
-        height = Math.round((height * 400) / width)
-        width = 400
-      }
+  img.onload = () => {
+    const canvas = document.createElement('canvas')
+    let width = img.width
+    let height = img.height
 
-      canvas.width = width
-      canvas.height = height
-
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, width, height)
-
-      // Comprimir a WebP 80%
-      canvas.toBlob((blob) => {
-        fileToUpload.value = blob
-        imagenPrevia.value = URL.createObjectURL(blob)
-      }, 'image/webp', 0.8)
+    if (width > 400) {
+      height = Math.round((height * 400) / width)
+      width = 400
     }
-    img.onerror = () => {
-      alert("La imagen seleccionada no es compatible o es demasiado pesada. Por favor, intenta con otra imagen (JPG, PNG o WEBP).")
-    }
-    img.src = e.target.result
+
+    canvas.width = width
+    canvas.height = height
+
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, 0, 0, width, height)
+
+    // Comprimir a WebP 80%
+    canvas.toBlob((blob) => {
+      fileToUpload.value = blob
+      imagenPrevia.value = URL.createObjectURL(blob)
+      URL.revokeObjectURL(objectUrl)
+    }, 'image/webp', 0.8)
   }
-  reader.readAsDataURL(file)
+  img.onerror = () => {
+    URL.revokeObjectURL(objectUrl)
+    alert("La imagen seleccionada no es compatible o es demasiado pesada. Por favor, intenta con otra imagen (JPG, PNG o WEBP).")
+  }
+  img.src = objectUrl
 }
 
 const handleRegister = async () => {
