@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, BackgroundTasks, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -6,10 +6,13 @@ from datetime import timedelta, datetime, timezone
 import re
 import uuid
 import mercadopago
+import urllib.request
+import json
+import jwt
 
 from app.db.database import get_db
 from app.models import Comercio, Usuario
-from app.schemas.auth import RegistroRequest, Token, UsuarioOut, PerfilUpdate
+from app.schemas.auth import RegistroRequest, Token, UsuarioOut, PerfilUpdate, ForgotPasswordRequest, ResetPasswordRequest
 from app.schemas.public import ComercioPublic
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.core.config import settings
@@ -282,3 +285,112 @@ async def update_perfil(
             "descripcion": comercio.descripcion
         }
     }
+
+def notificar_recuperacion_n8n(email: str, reset_link: str, comercio_nombre: str):
+    url = settings.N8N_RECOVER_PASSWORD_WEBHOOK
+    data = {
+        "email": email,
+        "reset_link": reset_link,
+        "comercio_nombre": comercio_nombre
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(data).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "X-N8N-Secret-Key": settings.N8N_SECRET
+        },
+        method="POST"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            status_code = response.getcode()
+            print(f"[INFO] Webhook de n8n invocado exitosamente. Status: {status_code}")
+    except Exception as e:
+        print(f"[ERROR] Error al invocar el webhook de n8n: {e}")
+
+@router.post("/forgot-password")
+async def forgot_password(
+    req: ForgotPasswordRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(Usuario).filter(Usuario.email == req.email))
+    user = result.scalars().first()
+    
+    # Respuesta genérica por seguridad si no existe el usuario
+    if not user:
+        return {"message": "Si el correo está registrado, recibirás un enlace para restablecer tu contraseña."}
+        
+    # Generar token JWT con expiración de 15 minutos
+    expire = datetime.utcnow() + timedelta(minutes=15)
+    token_data = {
+        "sub": str(user.id),
+        "action": "reset_password",
+        "exp": expire
+    }
+    reset_token = jwt.encode(token_data, settings.JWT_SECRET, algorithm=settings.ALGORITHM)
+    
+    # Obtener el origen dinámicamente
+    from urllib.parse import urlparse
+    origin = request.headers.get("origin")
+    if not origin:
+        referer = request.headers.get("referer")
+        if referer:
+            parsed = urlparse(referer)
+            origin = f"{parsed.scheme}://{parsed.netloc}"
+        else:
+            origin = "https://tupedido.ar"
+    else:
+        parsed = urlparse(origin)
+        origin = f"{parsed.scheme}://{parsed.netloc}"
+        
+    reset_link = f"{origin}/reset-password?token={reset_token}"
+    
+    # Obtener nombre del comercio para el email
+    result_comercio = await db.execute(select(Comercio).filter(Comercio.id == user.comercio_id))
+    comercio = result_comercio.scalars().first()
+    comercio_nombre = comercio.nombre if comercio else "TuPedido.ar"
+    
+    # Enviar email via n8n en segundo plano
+    background_tasks.add_task(
+        notificar_recuperacion_n8n,
+        email=user.email,
+        reset_link=reset_link,
+        comercio_nombre=comercio_nombre
+    )
+    
+    response_data = {
+        "message": "Si el correo está registrado, recibirás un enlace para restablecer tu contraseña."
+    }
+    
+    if settings.DEBUG:
+        response_data["debug_link"] = reset_link
+        
+    return response_data
+
+@router.post("/reset-password")
+async def reset_password(req: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        payload = jwt.decode(req.token, settings.JWT_SECRET, algorithms=[settings.ALGORITHM])
+        user_id = payload.get("sub")
+        action = payload.get("action")
+        
+        if not user_id or action != "reset_password":
+            raise HTTPException(status_code=400, detail="Token inválido o malformado")
+            
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=400, detail="El token ha expirado")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=400, detail="Token inválido o malformado")
+        
+    result = await db.execute(select(Usuario).filter(Usuario.id == uuid.UUID(user_id)))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+    user.hashed_password = get_password_hash(req.password)
+    await db.commit()
+    
+    return {"message": "Contraseña restablecida exitosamente"}

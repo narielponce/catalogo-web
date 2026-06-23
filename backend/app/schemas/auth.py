@@ -34,3 +34,11 @@ class PerfilUpdate(BaseModel):
     descripcion: Optional[str] = None
     whatsapp: str
     email: EmailStr
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str
+
