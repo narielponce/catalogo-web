@@ -264,13 +264,13 @@ onUnmounted(() => {
             </p>
             <p>${{ formatearPrecio(prod.precio) }}</p>
             
-            <div v-if="obtenerCantidad(prod) > 0" style="display: flex; align-items: center; justify-content: space-between; background: rgba(128,128,128,0.1); border-radius: var(--radius-md); padding: 0.5rem; margin-top: 1rem;">
+            <div v-if="obtenerCantidad(prod) > 0" style="display: flex; align-items: center; justify-content: space-between; background: rgba(128,128,128,0.1); border-radius: var(--radius-md); padding: 0.5rem; margin-top: auto;">
               <button @click="modificarCantidad(prod, -1)" class="btn-primary" style="width: 32px; height: 32px; padding: 0; border-radius: 50%; background: var(--color-text-light);">-</button>
               <span style="font-weight: bold; font-size: 1.1rem;">{{ obtenerCantidad(prod) }}</span>
               <button @click="modificarCantidad(prod, 1)" class="btn-primary" style="width: 32px; height: 32px; padding: 0; border-radius: 50%;">+</button>
             </div>
             
-            <button v-else @click="agregarAlCarrito(prod)" class="btn-primary" style="margin-top: 1rem;">
+            <button v-else @click="agregarAlCarrito(prod)" class="btn-primary" style="margin-top: auto;">
               Añadir al Carrito 🛒
             </button>
           </div>

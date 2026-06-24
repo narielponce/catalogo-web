@@ -548,7 +548,7 @@ onMounted(() => {
               <span v-if="!prod.disponible" style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold;">Inactivo</span>
             </div>
             <p>${{ formatearPrecio(prod.precio) }}</p>
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+            <div style="display: flex; gap: 0.5rem; margin-top: auto;">
               <button @click="editarProducto(prod)" class="btn-primary" style="background: var(--color-text-light); padding: 0.5rem; font-size: 0.8rem;">Editar</button>
               <button @click="borrarProducto(prod)" class="btn-primary" style="background: #ef4444; padding: 0.5rem; font-size: 0.8rem;">Borrar</button>
             </div>
