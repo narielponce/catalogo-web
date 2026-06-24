@@ -54,8 +54,45 @@ const borrarComercio = async (comercio) => {
   }
 }
 
+const montoSuscripcion = ref(1000)
+const isSavingConfig = ref(false)
+const configError = ref(null)
+const configSuccess = ref(null)
+
+const cargarConfiguracion = async () => {
+  try {
+    const data = await get('/api/superadmin/config')
+    if (data && data.monto_suscripcion !== undefined) {
+      montoSuscripcion.value = data.monto_suscripcion
+    }
+  } catch (err) {
+    console.error("Error al cargar la configuración:", err)
+  }
+}
+
+const guardarConfiguracion = async () => {
+  isSavingConfig.value = true
+  configError.value = null
+  configSuccess.value = null
+  try {
+    const data = await put('/api/superadmin/config', {
+      monto_suscripcion: parseFloat(montoSuscripcion.value)
+    })
+    if (data && data.status === 'success') {
+      configSuccess.value = true
+      montoSuscripcion.value = data.monto_suscripcion
+      setTimeout(() => { configSuccess.value = null }, 3000)
+    }
+  } catch (err) {
+    configError.value = err.message || 'Error al guardar la configuración'
+  } finally {
+    isSavingConfig.value = false
+  }
+}
+
 onMounted(() => {
   cargarComercios()
+  cargarConfiguracion()
 })
 </script>
 
@@ -68,6 +105,27 @@ onMounted(() => {
     
     <div class="admin-content content-wrapper">
       
+      <!-- CARD DE CONFIGURACIÓN GLOBAL DE SUSCRIPCIÓN -->
+      <div class="admin-card" style="margin-bottom: 2.5rem; max-width: 550px; border-left: 4px solid var(--color-primary); background: rgba(255,255,255,0.03);">
+        <h3 style="margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; font-size: 1.2rem;">
+          <span>⚙️</span> Configuración de Suscripción Premium
+        </h3>
+        <p style="color: var(--color-text-light); font-size: 0.9rem; margin-bottom: 1.25rem; line-height: 1.4;">
+          Define el costo de la suscripción mensual en pesos argentinos (ARS). Este valor se aplicará de manera inmediata a todas las nuevas intenciones de pago creadas con Mercado Pago.
+        </p>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--color-text-light);">Monto Mensual (ARS)</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="number" v-model="montoSuscripcion" min="1" step="any" class="form-input" style="flex: 1; padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white;" />
+            <button @click="guardarConfiguracion" class="btn-primary" style="width: auto; padding: 0.6rem 1.5rem;" :disabled="isSavingConfig">
+              {{ isSavingConfig ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
+        </div>
+        <p v-if="configError" style="color: #ef4444; font-size: 0.85rem; margin-top: 0.5rem; font-weight: bold;">❌ {{ configError }}</p>
+        <p v-if="configSuccess" style="color: #10b981; font-size: 0.85rem; margin-top: 0.5rem; font-weight: bold;">✅ Configuración guardada con éxito</p>
+      </div>
+
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h3>Gestión de Clientes</h3>
       </div>

@@ -19,3 +19,36 @@ class Settings(BaseSettings):
         env_file = ".env"
 
 settings = Settings()
+
+import json
+
+def get_config_path():
+    if os.path.exists("/app/uploads"):
+        return "/app/uploads/config.json"
+    os.makedirs("./uploads", exist_ok=True)
+    return "./uploads/config.json"
+
+def get_subscription_price() -> float:
+    try:
+        path = get_config_path()
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                data = json.load(f)
+                return float(data.get("monto_suscripcion", 1000.00))
+    except Exception as e:
+        print(f"Error reading config: {e}")
+    return 1000.00
+
+def set_subscription_price(price: float):
+    try:
+        path = get_config_path()
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        data = {}
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                data = json.load(f)
+        data["monto_suscripcion"] = price
+        with open(path, "w") as f:
+            json.dump(data, f)
+    except Exception as e:
+        print(f"Error writing config: {e}")

@@ -3,11 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
 from uuid import UUID
+from pydantic import BaseModel
 
 from app.db.database import get_db
 from app.models import Comercio, Producto, Usuario
 from app.api.dependencies import get_current_superadmin
 from app.schemas.superadmin import ComercioAdminOut, ComercioAdminUpdate
+from app.core.config import get_subscription_price, set_subscription_price
 
 router = APIRouter(prefix="/superadmin", tags=["Super Admin"])
 
@@ -53,3 +55,17 @@ async def delete_comercio(
     await db.delete(comercio)
     await db.commit()
     return {"status": "success", "message": "Comercio eliminado"}
+
+class ConfigUpdate(BaseModel):
+    monto_suscripcion: float
+
+@router.get("/config")
+async def get_superadmin_config(admin: Usuario = Depends(get_current_superadmin)):
+    return {"monto_suscripcion": get_subscription_price()}
+
+@router.put("/config")
+async def update_superadmin_config(config_in: ConfigUpdate, admin: Usuario = Depends(get_current_superadmin)):
+    if config_in.monto_suscripcion <= 0:
+        raise HTTPException(status_code=400, detail="El monto de la suscripción debe ser mayor a cero")
+    set_subscription_price(config_in.monto_suscripcion)
+    return {"status": "success", "monto_suscripcion": get_subscription_price()}

@@ -15,7 +15,7 @@ from app.models import Comercio, Usuario
 from app.schemas.auth import RegistroRequest, Token, UsuarioOut, PerfilUpdate, ForgotPasswordRequest, ResetPasswordRequest
 from app.schemas.public import ComercioPublic
 from app.core.security import get_password_hash, verify_password, create_access_token
-from app.core.config import settings
+from app.core.config import settings, get_subscription_price
 from app.api.dependencies import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
@@ -201,7 +201,7 @@ async def crear_preferencia(
             {
                 "title": "Suscripción Mensual - TuPedido.ar",
                 "quantity": 1,
-                "unit_price": 1000.00,
+                "unit_price": get_subscription_price(),
             }
         ],
         "payer": {
