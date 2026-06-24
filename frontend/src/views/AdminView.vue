@@ -249,6 +249,34 @@ const abrirNuevoProducto = () => {
   mostrarModal.value = true
 }
 
+const resizeImage = (img, maxDim, quality) => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas')
+    let width = img.width
+    let height = img.height
+
+    if (width > maxDim || height > maxDim) {
+      if (width > height) {
+        height = Math.round((height * maxDim) / width)
+        width = maxDim
+      } else {
+        width = Math.round((width * maxDim) / height)
+        height = maxDim
+      }
+    }
+
+    canvas.width = width
+    canvas.height = height
+
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, 0, 0, width, height)
+
+    canvas.toBlob((blob) => {
+      resolve(blob)
+    }, 'image/webp', quality)
+  })
+}
+
 const procesarImagen = (event) => {
   const files = event.target.files
   if (!files || files.length === 0) return
@@ -261,31 +289,23 @@ const procesarImagen = (event) => {
     const objectUrl = URL.createObjectURL(file)
 
     img.onload = () => {
-      const canvas = document.createElement('canvas')
-      let width = img.width
-      let height = img.height
-
-      if (width > 800) {
-        height = Math.round((height * 800) / width)
-        width = 800
-      }
-
-      canvas.width = width
-      canvas.height = height
-
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, width, height)
-
-      canvas.toBlob((blob) => {
-        const tempUrl = URL.createObjectURL(blob)
+      Promise.all([
+        resizeImage(img, 1000, 0.8), // Imagen de alta resolución
+        resizeImage(img, 350, 0.7)   // Miniatura
+      ]).then(([highResBlob, thumbBlob]) => {
+        const tempHighResUrl = URL.createObjectURL(highResBlob)
         imagenesProducto.value.push({
           id: Date.now() + Math.random().toString(36).substr(2, 9),
-          url: tempUrl,
-          blob: blob,
+          url: tempHighResUrl,
+          blob: highResBlob,
+          thumbBlob: thumbBlob,
           isExisting: false
         })
         URL.revokeObjectURL(objectUrl)
-      }, 'image/webp', 0.8)
+      }).catch((err) => {
+        console.error("Error al procesar la imagen:", err)
+        URL.revokeObjectURL(objectUrl)
+      })
     }
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl)
@@ -312,21 +332,40 @@ const submitProducto = async () => {
     
     for (let img of imagenesProducto.value) {
       if (img.isExisting) {
-        urlsFinales.push(img.url)
+        const finalUrl = img.thumbUrl ? `${img.url}|${img.thumbUrl}` : img.url
+        urlsFinales.push(finalUrl)
       } else if (img.blob) {
+        const token = localStorage.getItem('token')
+        
+        // 1. Subir imagen de alta resolución
         const formData = new FormData()
         formData.append('file', img.blob, 'imagen.webp')
-        
-        const token = localStorage.getItem('token')
         const response = await fetch('/api/productos/upload-image', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
           body: formData
         })
-        
-        if (!response.ok) throw new Error("Error al subir una de las imágenes")
+        if (!response.ok) throw new Error("Error al subir la imagen principal")
         const dataImg = await response.json()
-        urlsFinales.push(dataImg.url)
+        const highresUrl = dataImg.url
+
+        // 2. Subir miniatura
+        let thumbUrl = highresUrl // Fallback
+        if (img.thumbBlob) {
+          const formDataThumb = new FormData()
+          formDataThumb.append('file', img.thumbBlob, 'imagen_thumb.webp')
+          const responseThumb = await fetch('/api/productos/upload-image', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formDataThumb
+          })
+          if (responseThumb.ok) {
+            const dataThumb = await responseThumb.json()
+            thumbUrl = dataThumb.url
+          }
+        }
+
+        urlsFinales.push(`${highresUrl}|${thumbUrl}`)
       }
     }
 
@@ -366,12 +405,16 @@ const editarProducto = (prod) => {
   }
   
   const urls = prod.imagen_url ? prod.imagen_url.split(',') : []
-  imagenesProducto.value = urls.map((url, index) => ({
-    id: index,
-    url: url,
-    blob: null,
-    isExisting: true
-  }))
+  imagenesProducto.value = urls.map((item, index) => {
+    const parts = item.split('|')
+    return {
+      id: index,
+      url: parts[0],
+      thumbUrl: parts[1] || parts[0],
+      blob: null,
+      isExisting: true
+    }
+  })
   
   mostrarModal.value = true
 }
@@ -540,7 +583,7 @@ onMounted(() => {
 
       <div v-else class="product-grid">
         <div v-for="prod in productos" :key="prod.id" class="product-card">
-          <img v-if="prod.imagen_url" :src="prod.imagen_url.split(',')[0]" class="product-image-real" alt="Producto" @click="imagenAmpliada = prod.imagen_url.split(',')[0]" />
+          <img v-if="prod.imagen_url" :src="prod.imagen_url.split(',')[0].split('|')[1] || prod.imagen_url.split(',')[0].split('|')[0]" class="product-image-real" alt="Producto" @click="imagenAmpliada = prod.imagen_url.split(',')[0].split('|')[0]" />
           <div v-else class="product-image-placeholder"></div>
           <div class="product-info">
             <div style="display: flex; justify-content: space-between; align-items: start;">

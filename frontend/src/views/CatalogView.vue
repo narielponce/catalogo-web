@@ -53,8 +53,15 @@ const formatearPrecio = (valor) => {
 
 const activeImageIndices = ref({})
 
-const obtenerImagenes = (imagenUrl) => {
-  return imagenUrl ? imagenUrl.split(',') : []
+const obtenerImagenesDetalle = (imagenUrl) => {
+  if (!imagenUrl) return []
+  return imagenUrl.split(',').map(item => {
+    const parts = item.split('|')
+    return {
+      highres: parts[0],
+      thumb: parts[1] || parts[0]
+    }
+  })
 }
 
 const getActiveIndex = (prodId) => {
@@ -219,23 +226,23 @@ onUnmounted(() => {
           <div v-if="prod.imagen_url" style="position: relative; width: 100%; height: 250px; overflow: hidden; background: rgba(0,0,0,0.03); border-top-left-radius: inherit; border-top-right-radius: inherit;">
             <!-- Imagen actual -->
             <img 
-              :src="obtenerImagenes(prod.imagen_url)[getActiveIndex(prod.id)]" 
+              :src="obtenerImagenesDetalle(prod.imagen_url)[getActiveIndex(prod.id)]?.thumb" 
               class="product-image-real" 
               alt="Producto" 
-              @click="imagenAmpliadaInfo = { urls: obtenerImagenes(prod.imagen_url), currentIndex: getActiveIndex(prod.id) }"
+              @click="imagenAmpliadaInfo = { urls: obtenerImagenesDetalle(prod.imagen_url).map(img => img.highres), currentIndex: getActiveIndex(prod.id) }"
               style="width: 100%; height: 100%; object-fit: cover; cursor: pointer; transition: opacity 0.3s ease; border-radius: 0;"
             />
             
             <!-- Flechas de navegación (si hay más de 1 imagen) -->
-            <template v-if="obtenerImagenes(prod.imagen_url).length > 1">
+            <template v-if="obtenerImagenesDetalle(prod.imagen_url).length > 1">
               <button 
-                @click.stop="setActiveIndex(prod.id, (getActiveIndex(prod.id) - 1 + obtenerImagenes(prod.imagen_url).length) % obtenerImagenes(prod.imagen_url).length)"
+                @click.stop="setActiveIndex(prod.id, (getActiveIndex(prod.id) - 1 + obtenerImagenesDetalle(prod.imagen_url).length) % obtenerImagenesDetalle(prod.imagen_url).length)"
                 style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 1.2rem; font-weight: bold; backdrop-filter: blur(4px); z-index: 10; border-color: transparent;"
               >
                 ‹
               </button>
               <button 
-                @click.stop="setActiveIndex(prod.id, (getActiveIndex(prod.id) + 1) % obtenerImagenes(prod.imagen_url).length)"
+                @click.stop="setActiveIndex(prod.id, (getActiveIndex(prod.id) + 1) % obtenerImagenesDetalle(prod.imagen_url).length)"
                 style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 1.2rem; font-weight: bold; backdrop-filter: blur(4px); z-index: 10; border-color: transparent;"
               >
                 ›
@@ -244,7 +251,7 @@ onUnmounted(() => {
               <!-- Puntos de paginación abajo -->
               <div style="position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 10;">
                 <span 
-                  v-for="(img, idx) in obtenerImagenes(prod.imagen_url)" 
+                  v-for="(img, idx) in obtenerImagenesDetalle(prod.imagen_url)" 
                   :key="idx"
                   @click.stop="setActiveIndex(prod.id, idx)"
                   style="width: 8px; height: 8px; border-radius: 50%; cursor: pointer; transition: all 0.2s;"
