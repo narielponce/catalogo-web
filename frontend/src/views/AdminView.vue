@@ -457,8 +457,16 @@ onMounted(() => {
     
     <div class="admin-content content-wrapper">
       
+      <!-- SIN COMERCIO -->
+      <div v-if="meInfo && !meInfo.comercio" class="admin-card text-center" style="padding: 4rem 2rem; max-width: 600px; margin: 4rem auto; border: 2px solid var(--color-primary);">
+        <h2 style="margin-bottom: 1rem; font-size: 2rem;">Sin Comercio Asociado 🛍️</h2>
+        <p style="color: var(--color-text-light); font-size: 1.1rem; margin-bottom: 2rem;">
+          Tu cuenta de usuario no está asociada a ningún comercio.
+        </p>
+      </div>
+
       <!-- PAYWALL SIMULADO (TRIAL FINALIZADO O SIN SUSCRIPCIÓN) -->
-      <div v-if="meInfo && !meInfo.comercio.activo" class="admin-card text-center" style="padding: 4rem 2rem; max-width: 600px; margin: 4rem auto; border: 2px solid var(--color-primary);">
+      <div v-else-if="meInfo && meInfo.comercio && !meInfo.comercio.activo" class="admin-card text-center" style="padding: 4rem 2rem; max-width: 600px; margin: 4rem auto; border: 2px solid var(--color-primary);">
         <h2 style="margin-bottom: 1rem; font-size: 2rem;">Período de Prueba Finalizado 🔒</h2>
         <p style="color: var(--color-text-light); font-size: 1.1rem; margin-bottom: 2rem;">
           Tu catálogo ha sido pausado. Para reactivarlo y seguir vendiendo sin límites, suscríbete a nuestro plan premium mensual.
@@ -469,7 +477,7 @@ onMounted(() => {
       </div>
 
       <!-- DASHBOARD ACTIVO -->
-      <template v-else-if="meInfo && meInfo.comercio.activo">
+      <template v-else-if="meInfo && meInfo.comercio && meInfo.comercio.activo">
         
         <!-- BANNER DE TRIAL -->
         <div v-if="meInfo.comercio.trial_vence && diasRestantes > 0 && diasRestantes <= 14" class="admin-card" style="margin-bottom: 2rem; background: rgba(234, 88, 12, 0.1); border: 2px solid var(--color-primary); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
