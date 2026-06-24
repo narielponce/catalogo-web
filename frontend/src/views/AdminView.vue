@@ -57,13 +57,22 @@ const cargarProductos = async () => {
     const userData = await get('/api/auth/me')
     if (userData) {
       meInfo.value = userData
-      logoPrevia.value = userData.comercio.logo_url || null
-      portadaPrevia.value = userData.comercio.portada_url || null
-      formPerfil.value = {
-        nombre: userData.comercio.nombre,
-        descripcion: userData.comercio.descripcion || '',
-        whatsapp: userData.comercio.whatsapp,
-        email: userData.email
+      if (userData.comercio) {
+        logoPrevia.value = userData.comercio.logo_url || null
+        portadaPrevia.value = userData.comercio.portada_url || null
+        formPerfil.value = {
+          nombre: userData.comercio.nombre,
+          descripcion: userData.comercio.descripcion || '',
+          whatsapp: userData.comercio.whatsapp,
+          email: userData.email
+        }
+      } else {
+        formPerfil.value = {
+          nombre: '',
+          descripcion: '',
+          whatsapp: '',
+          email: userData.email
+        }
       }
     }
 
@@ -215,7 +224,7 @@ const guardarPerfil = async () => {
 }
 
 const diasRestantes = computed(() => {
-  if (!meInfo.value || !meInfo.value.comercio.trial_vence) return 0
+  if (!meInfo.value || !meInfo.value.comercio || !meInfo.value.comercio.trial_vence) return 0
   const vencimiento = new Date(meInfo.value.comercio.trial_vence)
   const hoy = new Date()
   const diffTime = vencimiento - hoy
