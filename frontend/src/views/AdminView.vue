@@ -487,9 +487,10 @@ const cambiarTema = async (temaId) => {
 }
 
 const formatearPrecio = (valor) => {
+  if (valor === undefined || valor === null) return '0'
   return new Intl.NumberFormat('es-AR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   }).format(valor)
 }
 
@@ -522,7 +523,7 @@ onMounted(() => {
           Tu catálogo ha sido pausado. Para reactivarlo y seguir vendiendo sin límites, suscríbete a nuestro plan premium mensual.
         </p>
         <button @click="simularPago" class="btn-primary" style="font-size: 1.2rem; padding: 1rem; background: #009ee3; box-shadow: 0 10px 25px -5px rgba(0, 158, 227, 0.4);" :disabled="isLoading">
-          {{ isLoading ? 'Procesando...' : `Suscríbete por solo $${meInfo.comercio.monto_suscripcion || 1000}` }}
+          {{ isLoading ? 'Procesando...' : `Suscribete por solo $ ${formatearPrecio(meInfo.comercio.monto_suscripcion || 12000)} mensuales` }}
         </button>
       </div>
 
@@ -549,7 +550,7 @@ onMounted(() => {
             </p>
           </div>
           <button @click="simularPago" class="btn-primary" :style="{ width: 'auto', background: trialVencido ? '#ef4444' : '#009ee3', boxShadow: trialVencido ? '0 4px 14px 0 rgba(239, 68, 68, 0.4)' : '0 4px 14px 0 rgba(0, 158, 227, 0.4)' }" :disabled="isLoading">
-            {{ isLoading ? 'Procesando...' : `Suscríbete por solo $${meInfo.comercio.monto_suscripcion || 1000}` }}
+            {{ isLoading ? 'Procesando...' : `Suscribete por solo $ ${formatearPrecio(meInfo.comercio.monto_suscripcion || 12000)} mensuales` }}
           </button>
         </div>
 

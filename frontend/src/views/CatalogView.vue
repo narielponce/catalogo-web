@@ -45,9 +45,10 @@ const modificarCantidad = (producto, delta) => {
 }
 
 const formatearPrecio = (valor) => {
+  if (valor === undefined || valor === null) return '0'
   return new Intl.NumberFormat('es-AR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   }).format(valor)
 }
 
