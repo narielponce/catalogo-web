@@ -35,6 +35,31 @@ async def obtener_comercios_vencidos(db: AsyncSession = Depends(get_db)):
         for comercio, email in vencidos
     ]
 
+@router.get("/por-vencer", dependencies=[Depends(verify_n8n_token)])
+async def obtener_comercios_por_vencer(dias: int = 3, db: AsyncSession = Depends(get_db)):
+    """Devuelve los comercios activos cuyo trial vence en exactamente X días (por defecto 3)."""
+    now = datetime.now(timezone.utc)
+    target_day_start = (now + timedelta(days=dias)).replace(hour=0, minute=0, second=0, microsecond=0)
+    target_day_end = target_day_start + timedelta(days=1)
+    
+    query = select(Comercio, Usuario.email).join(Usuario, Usuario.comercio_id == Comercio.id).filter(
+        Comercio.activo == True,
+        Comercio.trial_vence >= target_day_start,
+        Comercio.trial_vence < target_day_end
+    )
+    result = await db.execute(query)
+    por_vencer = result.all()
+    
+    return [
+        {
+            "id": str(comercio.id),
+            "nombre": comercio.nombre,
+            "email": email,
+            "vencimiento": comercio.trial_vence
+        }
+        for comercio, email in por_vencer
+    ]
+
 @router.put("/{comercio_id}/desactivar", dependencies=[Depends(verify_n8n_token)])
 async def desactivar_comercio(comercio_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Comercio).filter(Comercio.id == comercio_id))
