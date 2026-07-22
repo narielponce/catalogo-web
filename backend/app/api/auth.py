@@ -108,7 +108,8 @@ async def get_me(db: AsyncSession = Depends(get_db), current_user: Usuario = Dep
                 "portada_url": comercio.portada_url,
                 "tema": comercio.tema,
                 "activo": comercio.activo,
-                "trial_vence": comercio.trial_vence.isoformat() if comercio.trial_vence else None
+                "trial_vence": comercio.trial_vence.isoformat() if comercio.trial_vence else None,
+                "monto_suscripcion": get_subscription_price()
             }
             
     return response

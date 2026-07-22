@@ -232,6 +232,13 @@ const diasRestantes = computed(() => {
   return diffDays > 0 ? diffDays : 0
 })
 
+const trialVencido = computed(() => {
+  if (!meInfo.value || !meInfo.value.comercio || !meInfo.value.comercio.trial_vence) return false
+  const vencimiento = new Date(meInfo.value.comercio.trial_vence)
+  const hoy = new Date()
+  return vencimiento <= hoy
+})
+
 const handleLogout = () => {
   localStorage.removeItem('token')
   router.push({ name: 'login' })
@@ -515,7 +522,7 @@ onMounted(() => {
           Tu catálogo ha sido pausado. Para reactivarlo y seguir vendiendo sin límites, suscríbete a nuestro plan premium mensual.
         </p>
         <button @click="simularPago" class="btn-primary" style="font-size: 1.2rem; padding: 1rem; background: #009ee3; box-shadow: 0 10px 25px -5px rgba(0, 158, 227, 0.4);" :disabled="isLoading">
-          {{ isLoading ? 'Procesando...' : 'Pagar Suscripción (Mercado Pago)' }}
+          {{ isLoading ? 'Procesando...' : `Suscríbete por solo $${meInfo.comercio.monto_suscripcion || 1000}` }}
         </button>
       </div>
 
@@ -523,13 +530,26 @@ onMounted(() => {
       <template v-else-if="meInfo && meInfo.comercio && meInfo.comercio.activo">
         
         <!-- BANNER DE TRIAL -->
-        <div v-if="meInfo.comercio.trial_vence && diasRestantes > 0 && diasRestantes <= 14" class="admin-card" style="margin-bottom: 2rem; background: rgba(234, 88, 12, 0.1); border: 2px solid var(--color-primary); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div v-if="meInfo.comercio.trial_vence && (diasRestantes <= 14 || trialVencido)" class="admin-card" :style="{
+          marginBottom: '2rem',
+          background: trialVencido ? 'rgba(239, 68, 68, 0.1)' : 'rgba(234, 88, 12, 0.1)',
+          border: trialVencido ? '2px solid #ef4444' : '2px solid var(--color-primary)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }">
           <div>
-            <h3 style="color: var(--color-primary); margin-bottom: 0.25rem;">Estás en tu período de prueba (Quedan {{ diasRestantes }} días)</h3>
-            <p style="color: var(--color-text-light); font-size: 0.95rem;">Tu catálogo está 100% operativo. Suscríbete antes de que termine para no perder ventas.</p>
+            <h3 :style="{ color: trialVencido ? '#ef4444' : 'var(--color-primary)', marginBottom: '0.25rem' }">
+              {{ trialVencido ? 'Tu período de prueba ha vencido ⚠️' : `Estás en tu período de prueba (Quedan ${diasRestantes} días)` }}
+            </h3>
+            <p style="color: var(--color-text-light); font-size: 0.95rem;">
+              {{ trialVencido ? 'Tu tiempo se venció. Suscríbete ahora para seguir vendiendo sin interrupciones.' : 'Tu catálogo está 100% operativo. Suscríbete antes de que termine para no perder ventas.' }}
+            </p>
           </div>
-          <button @click="simularPago" class="btn-primary" style="width: auto; background: #009ee3; box-shadow: 0 4px 14px 0 rgba(0, 158, 227, 0.4);" :disabled="isLoading">
-            Suscribirse Ahora
+          <button @click="simularPago" class="btn-primary" :style="{ width: 'auto', background: trialVencido ? '#ef4444' : '#009ee3', boxShadow: trialVencido ? '0 4px 14px 0 rgba(239, 68, 68, 0.4)' : '0 4px 14px 0 rgba(0, 158, 227, 0.4)' }" :disabled="isLoading">
+            {{ isLoading ? 'Procesando...' : `Suscríbete por solo $${meInfo.comercio.monto_suscripcion || 1000}` }}
           </button>
         </div>
 

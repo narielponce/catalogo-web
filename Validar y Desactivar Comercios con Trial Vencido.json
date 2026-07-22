@@ -1,0 +1,141 @@
+{
+  "name": "Validar y Desactivar Comercios con Trial Vencido",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "id": "077f4580-77fd-4319-89b6-9b9f68319389",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        256,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://catalog.raizdigital.com.ar/api/internal/comercios/vencidos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-n8n-secret-key",
+              "value": "770a04b35e54ce4f718b6899f4aa308d316661c2771b5a818044b04e501fb078"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9d8ac0c8-ea6c-4384-a830-2df5a78734f2",
+      "name": "Obtener Comercios Vencidos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        480,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://catalog.raizdigital.com.ar/api/internal/comercios/{{ $json.id }}/desactivar",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-n8n-secret-key",
+              "value": "770a04b35e54ce4f718b6899f4aa308d316661c2771b5a818044b04e501fb078"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "52d63abc-fee9-4208-a9e6-34572cc509f7",
+      "name": "Desactivar Comercio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        720,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "from": "no-reply@raizdigital.com.ar",
+        "to": "={{ $json.email }}",
+        "subject": "=Tu período de prueba en {{ $json.nombre }} ha vencido",
+        "html": "=<h3>Hola {{ $json.nombre }},</h3><p>Queremos informarte que tu período de prueba de 14 días ha finalizado y tu catálogo digital ha sido desactivado temporalmente.</p><p>Para reactivar tu cuenta y seguir recibiendo pedidos de tus clientes por WhatsApp, por favor realiza el pago de la suscripción mensual.</p><p><a href=\"https://catalog.raizdigital.com.ar/admin\" style=\"background-color: #8b5cf6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;\">Ir a pagar / Reactivar</a></p><p>¡Muchas gracias!</p>",
+        "additionalOptions": {}
+      },
+      "id": "a8286c4a-5163-4919-a182-055f4e2665cf",
+      "name": "Notificar por Email",
+      "type": "n8n-nodes-resend.resend",
+      "typeVersion": 1,
+      "position": [
+        960,
+        -192
+      ],
+      "webhookId": "a11cdbd9-8573-4497-84f9-92a7187868c8",
+      "credentials": {
+        "resendApi": {
+          "id": "xJiTO99SyGuMKODJ",
+          "name": "Resend account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Obtener Comercios Vencidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Comercios Vencidos": {
+      "main": [
+        [
+          {
+            "node": "Desactivar Comercio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Desactivar Comercio": {
+      "main": [
+        [
+          {
+            "node": "Notificar por Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8511b948-d8bc-42ec-8fff-05c744893e1c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "00dfb2362bbc4f4722bfdded06753a5b74abec5da4ff1a6b601eac0f06066a4d"
+  },
+  "id": "NxuuuMPbYzvtQH8F",
+  "tags": []
+}
